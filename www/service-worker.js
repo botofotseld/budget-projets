@@ -1,10 +1,12 @@
 
-const CACHE = "budget-projets-pwa-v1";
+const CACHE = "budget-projets-pwa-v2";
+
 const ASSETS = [
   "./",
   "./index.html",
   "./css/style.css",
   "./js/storage.js",
+  "./js/currency.js",
   "./js/app.js",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
