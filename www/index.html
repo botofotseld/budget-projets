@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <title>Budget & Projets</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app-root">
+    <div class="layout-content">
+      <!-- Side Navigation (Tablets/Fold) -->
+      <nav class="side-nav">
+        <div class="nav-header">
+          <div class="eyebrow">Budget & Projets</div>
+          <h1 id="sidePageTitle">Accueil</h1>
+        </div>
+        <button class="nav-item active" data-page="homePage"><span>🏠</span><small>Accueil</small></button>
+        <button class="nav-item" data-page="transactionsPage"><span>↔</span><small>Transactions</small></button>
+        <button class="nav-item" data-page="projectsPage"><span>🎯</span><small>Projets</small></button>
+        <button class="nav-item" data-page="monthlyPage"><span>✅</span><small>Ce mois</small></button>
+        <button class="nav-item" data-page="settingsPage"><span>⚙️</span><small>Réglages</small></button>
+      </nav>
+
+      <div class="main-scroll-area" id="mainScroll">
+        <header class="topbar">
+          <div>
+            <div class="eyebrow">Budget & Projets</div>
+            <h1 id="pageTitle">Accueil</h1>
+          </div>
+          <div class="top-actions">
+            <button class="install-btn" id="installBtn" hidden>Installer</button>
+            <button class="icon-btn" id="quickAddBtn" aria-label="Ajouter">＋</button>
+          </div>
+        </header>
+
+        <main class="app-shell">
+          <section id="homePage" class="page active">
+            <div class="hero-card">
+              <span>Patrimoine total</span>
+              <strong id="totalAssets">0 €</strong>
+              <small>Disponible + argent restant dans les projets</small>
+            </div>
+
+            <div class="stats-grid">
+              <article class="stat-card">
+                <span>Disponible</span>
+                <strong id="availableBalance">0 €</strong>
+              </article>
+              <article class="stat-card">
+                <span>Dans les projets</span>
+                <strong id="projectsBalance">0 €</strong>
+              </article>
+              <article class="stat-card success">
+                <span>Entrées ce mois</span>
+                <strong id="monthIncome">0 €</strong>
+              </article>
+              <article class="stat-card danger">
+                <span>Dépenses ce mois</span>
+                <strong id="monthExpenses">0 €</strong>
+              </article>
+            </div>
+
+            <div class="section-head">
+              <h2>Projets actifs</h2>
+              <button class="link-btn" data-nav="projectsPage">Voir tout</button>
+            </div>
+            <div id="homeProjects"></div>
+
+            <div class="section-head">
+              <h2>Dernières transactions</h2>
+              <button class="link-btn" data-nav="transactionsPage">Voir tout</button>
+            </div>
+            <div id="homeTransactions" class="card"></div>
+          </section>
+
+          <section id="transactionsPage" class="page">
+            <div class="card form-card">
+              <h2>Nouvelle transaction</h2>
+              <div class="field">
+                <label>Type</label>
+                <select id="txType">
+                  <option value="income">Entrée</option>
+                  <option value="expense">Dépense</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Description</label>
+                <input id="txDescription" placeholder="Ex : Salaire, courses..." />
+              </div>
+              <div class="two-cols">
+                <div class="field">
+                  <label>Montant</label>
+                  <input id="txAmount" type="number" min="0" step="0.01" inputmode="decimal" />
+                </div>
+                <div class="field">
+                  <label>Devise</label>
+                  <select id="txCurrency">
+                    <option value="EUR">EUR (€)</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="MGA">MGA (Ar)</option>
+                    <option value="FMG">FMG</option>
+                  </select>
+                </div>
+              </div>
+              <div id="txFmgHint" class="muted" style="margin-bottom:12px; font-size:12px; display:none"></div>
+              <button class="primary full" id="addTxBtn">Ajouter la transaction</button>
+            </div>
+
+            <div class="section-head">
+              <h2>Historique</h2>
+              <select id="txFilter" class="compact-select">
+                <option value="all">Tout</option>
+                <option value="income">Entrées</option>
+                <option value="expense">Dépenses</option>
+                <option value="project">Versements projet</option>
+                <option value="project_expense">Dépenses projet</option>
+              </select>
+            </div>
+            <div id="transactionList" class="card"></div>
+          </section>
+
+          <section id="projectsPage" class="page">
+            <div class="master-detail-view">
+              <div class="projects-list-pane">
+                <div class="card form-card">
+                  <h2>Nouveau projet</h2>
+                  <div class="two-cols">
+                    <div class="field">
+                      <label>Nom</label>
+                      <input id="projectName" placeholder="Ex : Maison" />
+                    </div>
+                    <div class="field">
+                      <label>Icône</label>
+                      <input id="projectIcon" placeholder="🏠" maxlength="4" />
+                    </div>
+                  </div>
+                  <div class="two-cols">
+                    <div class="field">
+                      <label>Objectif financier</label>
+                      <input id="projectTarget" type="number" min="1" inputmode="decimal" />
+                    </div>
+                    <div class="field">
+                      <label>Devise</label>
+                      <select id="projectCurrency">
+                        <option value="EUR">EUR (€)</option>
+                        <option value="USD">USD ($)</option>
+                        <option value="MGA">MGA (Ar)</option>
+                        <option value="FMG">FMG</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label>Type de projet</label>
+                    <select id="projectType">
+                      <option value="simple">Projet simple (Épargne/Objectif)</option>
+                      <optgroup label="Projets Détaillés">
+                        <option value="house">🏠 Maison / Chantier</option>
+                        <option value="land">🌳 Terrain / Parcelle</option>
+                        <option value="car">🚗 Voiture / Véhicule</option>
+                        <option value="travel">✈️ Voyage / Vacances</option>
+                        <option value="studies">🎓 Études / Formation</option>
+                        <option value="business">💼 Entreprise / Startup</option>
+                        <option value="commerce">🛒 Commerce / Ventes</option>
+                        <option value="wedding">💍 Mariage / Événement</option>
+                        <option value="computer">💻 Achat Ordinateur / Tech</option>
+                        <option value="saving">💰 Épargne / Placement</option>
+                        <option value="family">👪 Projet Familial</option>
+                        <option value="pro">🛠️ Projet Professionnel</option>
+                        <option value="invest">📈 Investissement</option>
+                        <option value="custom">⚙️ Projet Personnalisé</option>
+                      </optgroup>
+                    </select>
+                  </div>
+                  <button class="primary full" id="createProjectBtn">Créer le projet</button>
+                </div>
+                <div id="projectsList"></div>
+              </div>
+
+              <!-- Tablet/Fold Detail Pane (Hidden on mobile via JS) -->
+              <div class="project-detail-pane" id="tabletDetailPane">
+                <div class="empty-detail">
+                  <p>Sélectionnez un projet pour voir les détails</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="monthlyPage" class="page">
+            <div class="card">
+              <h2 id="monthLabel">Ce mois</h2>
+              <p class="muted">Entre librement le montant à affecter à chaque projet, puis coche pour valider.</p>
+            </div>
+            <div id="monthlyList"></div>
+          </section>
+
+          <section id="projectDetailPage" class="page">
+            <button class="back-btn" id="backProjectsBtn">← Retour aux projets</button>
+            <div id="projectDetail"></div>
+          </section>
+
+          <section id="settingsPage" class="page">
+            <div class="card">
+              <h2>Apparence</h2>
+              <div class="field">
+                <label>Thème de l'application</label>
+                <select id="themeSelect">
+                  <option value="system">Système (par défaut)</option>
+                  <option value="light">Clair</option>
+                  <option value="dark">Sombre</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Gestion des devises</h2>
+              <div class="field">
+                <label>Devise principale d'affichage</label>
+                <select id="mainCurrencySelect">
+                  <option value="EUR">EUR (€)</option>
+                  <option value="USD">USD ($)</option>
+                  <option value="MGA">MGA (Ar)</option>
+                  <option value="FMG">FMG</option>
+                </select>
+              </div>
+              <div class="check-card" style="margin-bottom:16px; grid-template-columns: 32px 1fr;">
+                <input type="checkbox" id="showArFmgToggle" />
+                <label for="showArFmgToggle">Afficher l'équivalent Ar/FMG</label>
+              </div>
+
+              <h3>Taux de change manuels</h3>
+              <p class="muted" style="font-size:12px; margin-bottom:10px;">Définit la valeur par rapport à l'Ariary (MGA).</p>
+              <div class="two-cols">
+                <div class="field">
+                  <label>1 EUR = ... Ar</label>
+                  <input id="rateEur" type="number" step="0.1" />
+                </div>
+                <div class="field">
+                  <label>1 USD = ... Ar</label>
+                  <input id="rateUsd" type="number" step="0.1" />
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Données</h2>
+              <p class="muted">Pour cette V1, les données restent uniquement dans ce navigateur.</p>
+              <div class="stack">
+                <button class="secondary full" id="exportBtn">Exporter mes données</button>
+                <label class="secondary full file-label">
+                  Importer une sauvegarde
+                  <input type="file" id="importInput" accept="application/json" hidden />
+                </label>
+                <button class="danger full" id="resetBtn">Réinitialiser l'application</button>
+              </div>
+            </div>
+            <div class="card">
+              <h2>À venir</h2>
+              <p class="muted">Synchronisation cloud, comptes multiples, photos de chantier et multi-utilisateur.</p>
+            </div>
+
+            <footer class="about-section">
+              <div class="author-label">Conception & développement</div>
+              <div class="author-name">BOTOFOTSY Eldinaud</div>
+              <div class="app-name" style="margin-top: 20px;">Budget & Projets</div>
+              <div class="version">Version 1.0</div>
+              <div class="rights">© 2026 Tous droits réservés</div>
+            </footer>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <!-- Bottom Navigation (Mobile) -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-page="homePage"><span>🏠</span><small>Accueil</small></button>
+      <button class="nav-item" data-page="transactionsPage"><span>↔</span><small>Transactions</small></button>
+      <button class="nav-item" data-page="projectsPage"><span>🎯</span><small>Projets</small></button>
+      <button class="nav-item" data-page="monthlyPage"><span>✅</span><small>Ce mois</small></button>
+      <button class="nav-item" data-page="settingsPage"><span>⚙️</span><small>Réglages</small></button>
+    </nav>
+  </div>
+
+  <script src="js/storage.js"></script>
+  <script src="js/currency.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => navigator.serviceWorker.register("./service-worker.js"));
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Budget &amp; Projets</string>
+    <string name="title_activity_main">Budget &amp; Projets</string>
+    <string name="package_name">com.eldinaud.budgetprojets</string>
+    <string name="custom_url_scheme">com.eldinaud.budgetprojets</string>
+</resources>

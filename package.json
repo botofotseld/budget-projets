@@ -1,0 +1,18 @@
+{
+  "name": "budget_projets_pwa",
+  "version": "1.0.0",
+  "description": "Cette version fusionne : - budget personnel ; - entrées / dépenses ; - projets financiers ; - checklist mensuelle avec montant libre ; - projet détaillé type chantier / diaspora ; - suivi des dépenses projet ; - matériaux ; - ouvriers ; - étapes d'avancement ; - export / import JSON ; - stockage local dans le navigateur.",
+  "main": "service-worker.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/core": "^8.5.2"
+  }
+}
