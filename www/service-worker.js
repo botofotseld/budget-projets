@@ -1,4 +1,4 @@
-const CACHE = "budget-projets-pwa-20260913001228";
+const CACHE = "budget-projets-pwa-20260913001259";
 
 const ASSETS = [
   "./",
