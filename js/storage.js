@@ -1,6 +1,6 @@
 
 const STORAGE_KEY = "budgetProjetsV1_2";
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 const defaultState = () => ({
   schemaVersion: SCHEMA_VERSION,
@@ -12,6 +12,7 @@ const defaultState = () => ({
   projectWorkers: [],
   projectTasks: [],
   projectData: [],
+  projectEvents: [],
   theme: "system",
   mainCurrency: "EUR",
   showArFmg: true,
@@ -25,45 +26,25 @@ function loadState(){
   const raw = localStorage.getItem(STORAGE_KEY);
   if(!raw) return defaultState();
   try{
-    const parsed = JSON.parse(raw);
-    let state = {...defaultState(), ...parsed};
+    let state = JSON.parse(raw);
 
-    // --- Migration Logic ---
+    // --- Step-by-Step Migration ---
 
-    if (!state.schemaVersion || state.schemaVersion < 2) {
-      console.log("Migrating state to version 2...");
-
-      // 1. Harmonize Statuses
-      const statusMap = {
-        'active': 'En cours',
-        'archived': 'Archivé',
-        'En cours': 'En cours',
-        'Archivé': 'Archivé'
-      };
-
-      // 2. Harmonize Groups & SubTypes
-      state.projects = state.projects.map(p => {
-        let updated = {...p};
-        updated.status = statusMap[p.status] || 'En cours';
-
-        // If it was a generic 'detailed' project (old 'house'), ensure subType is set
-        if (updated.type === 'detailed' && !updated.subType) {
-          updated.subType = 'house';
+    // Migration V1/V2 to V3
+    if (!state.schemaVersion || state.schemaVersion < 3) {
+        // We use the MigrationService which must be loaded before app.js
+        if (typeof MigrationService !== 'undefined') {
+            state = MigrationService.migrateToV3(state);
+        } else {
+            console.error("MigrationService not found! Skipping migration, this might cause issues.");
         }
-        if (updated.type === 'simple') updated.subType = 'simple';
-
-        updated.customTabs = updated.customTabs || [];
-        return updated;
-      });
-
-      state.schemaVersion = 2;
-      saveState(state);
     }
 
-    // Ensure currency exists for all items
+    // Basic ensure logic (always run for safety)
+    state = {...defaultState(), ...state};
     state.transactions = state.transactions.map(t => ({...t, currency: t.currency || 'EUR'}));
-    state.projectExpenses = state.projectExpenses.map(e => ({...e, currency: e.currency || 'EUR'}));
     state.projectData = state.projectData || [];
+    state.projectEvents = state.projectEvents || [];
 
     return state;
   }catch(e){
@@ -91,7 +72,6 @@ function importStateFile(file, callback){
   reader.onload = () => {
     try{
       const parsed = JSON.parse(reader.result);
-      // Logic for import could be improved with version check
       const normalized = {...defaultState(), ...parsed};
       saveState(normalized);
       callback(null, normalized);
@@ -103,5 +83,8 @@ function importStateFile(file, callback){
 }
 
 function resetState(){
-  localStorage.removeItem(STORAGE_KEY);
+  if (confirm("ATTENTION : Cette action supprimera définitivement toutes vos données. Continuer ?")) {
+      localStorage.removeItem(STORAGE_KEY);
+      location.reload();
+  }
 }
