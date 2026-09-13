@@ -6,6 +6,13 @@ let state = StorageService.load();
 let activeProjectId = null;
 
 /**
+ * UI State (Non-persistent between sessions, but active during runtime)
+ */
+const uiState = {
+    activeProjectTab: {} // Map projectId -> activeTabId
+};
+
+/**
  * Persistence wrapper
  */
 function persist() {
@@ -14,7 +21,7 @@ function persist() {
 }
 
 /**
- * Global helpers moved from app.js if they are state-related
+ * Global helpers
  */
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
 const esc = (s) => String(s ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");

@@ -1,8 +1,11 @@
 
 /**
- * Router - Simple page navigation management
+ * Router - Page and Project Tab navigation
  */
 const Router = {
+    /**
+     * Main Page Navigation
+     */
     navigate(pageId) {
         document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
         const targetPage = document.getElementById(pageId);
@@ -27,8 +30,36 @@ const Router = {
         // Scroll to top
         const scrollArea = document.getElementById("mainScroll");
         if (scrollArea) scrollArea.scrollTo({ top: 0, behavior: "smooth" });
+    },
+
+    /**
+     * Internal Project Tab Navigation
+     */
+    switchProjectTab(projectId, tabId) {
+        // 1. Save UI State
+        uiState.activeProjectTab[projectId] = tabId;
+
+        // 2. Immediate UI Feedback (CSS classes)
+        const tabButtons = document.querySelectorAll(".detail-tabs button");
+        tabButtons.forEach(btn => {
+            const isTarget = btn.getAttribute("data-tab-id") === tabId;
+            btn.classList.toggle("active", isTarget);
+        });
+
+        const panes = document.querySelectorAll(".op-pane");
+        panes.forEach(pane => {
+            const isTarget = pane.id === `tab_${tabId}`;
+            pane.classList.toggle("active", isTarget);
+        });
+
+        console.log(`Switched to tab: ${tabId} for project: ${projectId}`);
     }
 };
 
-// Global legacy alias
+// Global legacy aliases
 function navigate(pageId) { Router.navigate(pageId); }
+function switchDetailTab(btn, tabDivId) {
+    // Legacy support if needed, but we'll migrate to data-attributes
+    const tabId = tabDivId.replace("tab_", "");
+    Router.switchProjectTab(activeProjectId, tabId);
+}

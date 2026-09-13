@@ -14,11 +14,11 @@ const UIModules = {
                 <div class="project-card-header">
                     <div>
                         <div class="project-name" style="font-size: 24px;">${p.icon} ${esc(p.name)}</div>
-                        <select class="status-select" onchange="updateProjectStatus('${p.id}', this.value)">
+                        <select class="status-select">
                             ${ProjectService.STATUSES.map(s => `<option value="${s}" ${p.status === s ? 'selected' : ''}>${s}</option>`).join("")}
                         </select>
                     </div>
-                    <button class="danger" onclick="archiveProject('${p.id}')">Archiver</button>
+                    <button class="danger" data-action="archive-project" data-project-id="${p.id}">Archiver</button>
                 </div>
 
                 <div class="kpi-grid-5" style="margin-top:24px">
@@ -117,7 +117,7 @@ const UIModules = {
                 </div>
                 <div id="detailExpenseFmgHint" class="muted" style="margin-bottom:12px; font-size:12px; display:none"></div>
                 <div class="field"><label>Catégorie</label><select id="detailExpenseCategory"><option>Matériaux</option><option>Main-d'œuvre</option><option>Transport</option><option>Hébergement</option><option>Frais</option><option>Autre</option></select></div>
-                <button class="primary full" onclick="addProjectExpense('${p.id}')">Enregistrer la dépense</button>
+                <button class="primary full" data-action="save-project-expense" data-project-id="${p.id}">Enregistrer la dépense</button>
             </div>
             <div class="card">
                 <h2>Historique financier</h2>
@@ -137,7 +137,7 @@ const UIModules = {
                 <div class="field"><label>Nom complet</label><input id="worker_name" /></div>
                 <div class="field"><label>Mission / Rôle</label><input id="worker_role" /></div>
                 <div class="field"><label>Montant total convenu (${p.currency})</label><input id="worker_total" type="number" /></div>
-                <button class="primary full" onclick="saveWorker('${p.id}')">Enregistrer l'intervenant</button>
+                <button class="primary full" data-action="save-worker" data-project-id="${p.id}">Enregistrer l'intervenant</button>
             </div>
             ${data.map(d => {
                 const stats = FinanceService.getItemStats('workers', d.id, p.currency);
@@ -145,7 +145,7 @@ const UIModules = {
                     <div class="card">
                         <div style="display:flex; justify-content:space-between; align-items:flex-start">
                             <div><h3 style="margin-bottom:2px">${esc(d.values.name)}</h3><div class="badge">${esc(d.values.role)}</div></div>
-                            <button class="link-btn danger" onclick="deleteGenericData('${d.id}')">Supprimer</button>
+                            <button class="link-btn danger" data-action="delete-generic" data-item-id="${d.id}">Supprimer</button>
                         </div>
                         <div class="kpi-grid" style="margin-top:16px; background:var(--surface-2); padding:10px; border-radius:12px">
                             <div class="kpi"><span>Convenu</span><strong>${Currency.format(stats.agreed, p.currency)}</strong></div>
@@ -153,7 +153,7 @@ const UIModules = {
                             <div class="kpi"><span>Reste</span><strong class="${stats.remaining > 0 ? 'warning' : 'success'}">${Currency.format(stats.remaining, p.currency)}</strong></div>
                         </div>
                         <div style="margin-top:16px">
-                            <button class="secondary full" onclick="payWorker('${p.id}', '${d.id}')">💰 Enregistrer un paiement</button>
+                            <button class="secondary full" data-action="pay-worker" data-project-id="${p.id}" data-worker-id="${d.id}">💰 Enregistrer un paiement</button>
                         </div>
                     </div>
                 `;
@@ -175,7 +175,7 @@ const UIModules = {
                     <div class="field"><label>Prix unit. prévu</label><input id="mat_price" type="number" /></div>
                 </div>
                 <div class="field"><label>Unité</label><input id="mat_unit" placeholder="m3, sacs..." /></div>
-                <button class="primary full" onclick="saveMaterial('${p.id}')">Enregistrer</button>
+                <button class="primary full" data-action="save-material" data-project-id="${p.id}">Enregistrer</button>
             </div>
             <div class="card">
                 <div class="table-wrap">
@@ -190,8 +190,10 @@ const UIModules = {
                                         <td>${d.values.planned_qty} ${d.values.unit}</td>
                                         <td>${d.values.received_qty}</td>
                                         <td>${Currency.format(stats.paid, p.currency)}</td>
-                                        <td><button class="link-btn" onclick="openAchatMaterial('${p.id}', '${d.id}')">Acheter</button>
-                                        <button class="link-btn danger" onclick="deleteGenericData('${d.id}')">X</button></td>
+                                        <td>
+                                            <button class="link-btn" data-action="buy-material" data-project-id="${p.id}" data-material-id="${d.id}">Acheter</button>
+                                            <button class="link-btn danger" data-action="delete-generic" data-item-id="${d.id}">X</button>
+                                        </td>
                                     </tr>
                                 `;
                             }).join("")}
@@ -212,7 +214,7 @@ const UIModules = {
                 <h2>Nouveau produit</h2>
                 <div class="field"><label>Article</label><input id="inv_item" /></div>
                 <div class="field"><label>Quantité initiale</label><input id="inv_qty" type="number" /></div>
-                <button class="primary full" onclick="saveInventoryItem('${p.id}')">Créer la fiche</button>
+                <button class="primary full" data-action="save-inventory-item" data-project-id="${p.id}">Créer la fiche</button>
             </div>
             <div class="card">
                 <div class="table-wrap">
@@ -220,8 +222,9 @@ const UIModules = {
                         <thead><tr><th>Article</th><th>En stock</th><th></th></tr></thead>
                         <tbody>${data.map(d => `<tr><td><strong>${esc(d.values.item)}</strong></td><td>${d.values.qty}</td>
                             <td style="display:flex; gap:8px">
-                                <button class="link-btn success" onclick="sellProduct('${p.id}', '${d.id}')">Vendre</button>
-                                <button class="link-btn" onclick="buyStock('${p.id}', '${d.id}')">Réappro</button>
+                                <button class="link-btn success" data-action="sell-product" data-project-id="${p.id}" data-item-id="${d.id}">Vendre</button>
+                                <button class="link-btn" data-action="buy-stock" data-project-id="${p.id}" data-item-id="${d.id}">Réappro</button>
+                                <button class="link-btn danger" data-action="delete-generic" data-item-id="${d.id}">X</button>
                             </td></tr>`).join("")}</tbody>
                     </table>
                 </div>
@@ -238,7 +241,7 @@ const UIModules = {
                 <h2>Nouvelle réservation (${config.type})</h2>
                 <div class="field"><label>Désignation</label><input id="book_name" /></div>
                 <div class="field"><label>Prix payé</label><input id="book_price" type="number" /></div>
-                <button class="primary full" onclick="saveBooking('${p.id}', '${tabId}')">Enregistrer</button>
+                <button class="primary full" data-action="save-booking" data-project-id="${p.id}" data-tab-id="${tabId}">Enregistrer</button>
             </div>
             <div class="card">${this.renderGenericModule(p, tabId)}</div>`;
     },
@@ -252,12 +255,12 @@ const UIModules = {
             <div class="card form-card">
                 <h2>Nouvelle tâche</h2>
                 <div class="field"><label>Désignation</label><input id="taskName" placeholder="Ex : Toiture..." /></div>
-                <button class="primary full" onclick="addTask('${p.id}')">Ajouter la tâche</button>
+                <button class="primary full" data-action="save-task" data-project-id="${p.id}">Ajouter la tâche</button>
             </div>
             <div class="card">
                 ${rows.length ? rows.map(t => `
                     <div class="task-row">
-                        <label><input type="checkbox" ${t.done ? "checked" : ""} onchange="toggleTask('${t.id}','${p.id}')" /><span>${esc(t.name)}</span></label>
+                        <label><input type="checkbox" ${t.done ? "checked" : ""} data-action="toggle-task" data-task-id="${t.id}" data-project-id="${p.id}" /><span>${esc(t.name)}</span></label>
                         <span class="badge ${t.done ? 'success' : ''}">${t.done ? "Terminé" : "En cours"}</span>
                     </div>
                 `).join("") : '<div class="empty">Aucune tâche planifiée</div>'}
@@ -275,14 +278,14 @@ const UIModules = {
             <div class="card form-card">
                 <h2>${config.label}</h2>
                 ${config.fields.map(f => `<div class="field"><label>${f.label}</label><input id="data_${tabId}_${f.id}" type="${f.type || 'text'}" /></div>`).join("")}
-                <button class="primary full" onclick="saveGenericData('${p.id}', '${tabId}')">Enregistrer</button>
+                <button class="primary full" data-action="save-generic-data" data-project-id="${p.id}" data-tab-id="${tabId}">Enregistrer</button>
             </div>
             <div class="card">
                 <div class="table-wrap">
                     <table>
                         <thead><tr>${config.fields.map(f => `<th>${f.label}</th>`).join("")}<th></th></tr></thead>
                         <tbody>
-                            ${data.map(d => `<tr>${config.fields.map(f => `<td>${esc(d.values[f.id])}</td>`).join("")}<td><button class="link-btn danger" onclick="deleteGenericData('${d.id}')">X</button></td></tr>`).join("")}
+                            ${data.map(d => `<tr>${config.fields.map(f => `<td>${esc(d.values[f.id])}</td>`).join("")}<td><button class="link-btn danger" data-action="delete-generic" data-item-id="${d.id}">X</button></td></tr>`).join("")}
                         </tbody>
                     </table>
                 </div>
@@ -290,9 +293,6 @@ const UIModules = {
         `;
     },
 
-    /**
-     * Custom Tabs Management
-     */
     renderCustomTabsManager(p) {
         return `
             <div class="card form-card">
@@ -301,17 +301,17 @@ const UIModules = {
                     <label>Modèle à ajouter</label>
                     <select id="libTabSelect">${TAB_LIBRARY.map(t => `<option value="${t}">${TAB_CONFIG[t]?.label || t}</option>`).join("")}</select>
                 </div>
-                <button class="secondary full" onclick="addLibraryTab('${p.id}')">Ajouter ce module</button>
+                <button class="secondary full" data-action="add-library-tab" data-project-id="${p.id}">Ajouter ce module</button>
             </div>
             <div class="card">
-                <h2>Modules actifs</h2>
-                ${p.customTabs?.map(t => `<div class="task-row"><span>${esc(t.name)}</span><button class="link-btn danger" onclick="deleteCustomTab('${p.id}', '${t.id}')">Retirer</button></div>`).join("") || '<div class="empty">Aucun module ajouté</div>'}
+                <h2>Modules personnalisés actifs</h2>
+                ${p.customTabs?.map(t => `<div class="task-row"><span>${esc(t.name)}</span><button class="link-btn danger" data-action="delete-custom-tab" data-project-id="${p.id}" data-tab-id="${t.id}">Retirer</button></div>`).join("") || '<div class="empty">Aucun module ajouté</div>'}
             </div>
         `;
     }
 };
 
-// Global Handlers (Module logic)
+// Global Handlers (Now used by delegation in events.js)
 
 function saveMaterial(projectId) {
     const values = {
@@ -341,6 +341,7 @@ function saveWorker(projectId) {
 
 function payWorker(projectId, workerId) {
     const worker = state.projectData.find(d => d.id === workerId);
+    if (!worker) return;
     const amount = prompt(`Montant du paiement pour ${worker.values.name} ?`);
     if (!amount || isNaN(amount)) return;
     const p = state.projects.find(x => x.id === projectId);

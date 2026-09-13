@@ -1,48 +1,95 @@
 
 /**
- * Global Event Handlers Initialization
+ * Global Event Handlers Initialization (V7 - Robust Delegation)
  */
 const Events = {
     init() {
-        // Tab Navigation
-        document.querySelectorAll(".nav-item").forEach(b => b.addEventListener("click", () => navigate(b.dataset.page)));
-        document.querySelectorAll("[data-nav]").forEach(b => b.addEventListener("click", () => navigate(b.dataset.nav)));
+        // --- 1. Global CLICK Delegation ---
+        document.addEventListener("click", e => {
+            const el = e.target.closest("[data-page], [data-nav], [data-tab-id], [data-action]");
+            if (!el) return;
 
-        // Global Actions
-        if ($("addTxBtn")) $("addTxBtn").addEventListener("click", addTransaction);
-        if ($("createProjectBtn")) $("createProjectBtn").addEventListener("click", createProject);
-        if ($("txFilter")) $("txFilter").addEventListener("change", renderTransactions);
-        if ($("backProjectsBtn")) $("backProjectsBtn").addEventListener("click", () => navigate("projectsPage"));
-        if ($("quickAddBtn")) $("quickAddBtn").addEventListener("click", () => navigate("transactionsPage"));
+            const ds = el.dataset;
 
-        // Settings
-        if ($("themeSelect")) $("themeSelect").addEventListener("change", (e) => { state.theme = e.target.value; persist(); });
-        if ($("mainCurrencySelect")) $("mainCurrencySelect").addEventListener("change", (e) => { state.mainCurrency = e.target.value; persist(); });
-        if ($("showArFmgToggle")) $("showArFmgToggle").addEventListener("change", (e) => { state.showArFmg = e.target.checked; persist(); });
-        if ($("rateEur")) $("rateEur").addEventListener("change", (e) => { state.rates.EUR = parseFloat(e.target.value) || 5000; persist(); });
-        if ($("rateUsd")) $("rateUsd").addEventListener("change", (e) => { state.rates.USD = parseFloat(e.target.value) || 4500; persist(); });
+            // Page Navigation
+            if (ds.page) return navigate(ds.page);
+            if (ds.nav) return navigate(ds.nav);
 
-        // Backup & Restore
-        if ($("exportBtn")) $("exportBtn").addEventListener("click", () => StorageService.export(state));
+            // Project Tab Switch
+            if (ds.tabId && activeProjectId) {
+                return Router.switchProjectTab(activeProjectId, ds.tabId);
+            }
+
+            // Project Actions
+            if (ds.action === "archive-project") return archiveProject(ds.projectId);
+            if (ds.action === "save-worker") return saveWorker(ds.projectId);
+            if (ds.action === "pay-worker") return payWorker(ds.projectId, ds.workerId);
+            if (ds.action === "save-material") return saveMaterial(ds.projectId);
+            if (ds.action === "buy-material") return openAchatMaterial(ds.projectId, ds.materialId);
+            if (ds.action === "save-inventory-item") return saveInventoryItem(ds.projectId);
+            if (ds.action === "sell-product") return sellProduct(ds.projectId, ds.itemId);
+            if (ds.action === "buy-stock") return buyStock(ds.projectId, ds.itemId);
+            if (ds.action === "save-booking") return saveBooking(ds.projectId, ds.tabId);
+            if (ds.action === "save-task") return addTask(ds.projectId);
+            if (ds.action === "save-generic-data") return saveGenericData(ds.projectId, ds.tabId);
+            if (ds.action === "delete-generic") return deleteGenericData(ds.itemId);
+            if (ds.action === "add-library-tab") return addLibraryTab(ds.projectId);
+            if (ds.action === "delete-custom-tab") return deleteCustomTab(ds.projectId, ds.tabId);
+            if (ds.action === "save-project-expense") return addProjectExpense(ds.projectId);
+        });
+
+        // --- 2. Global CHANGE Delegation ---
+        document.addEventListener("change", e => {
+            const el = e.target;
+
+            // Project Status
+            if (el.classList.contains("status-select") && activeProjectId) {
+                updateProjectStatus(activeProjectId, el.value);
+            }
+
+            // Task Toggle (Checkbox)
+            if (el.dataset.action === "toggle-task") {
+                toggleTask(el.dataset.taskId, el.dataset.projectId);
+            }
+
+            // Settings
+            if (el.id === "themeSelect") { state.theme = el.value; persist(); }
+            if (el.id === "mainCurrencySelect") { state.mainCurrency = el.value; persist(); }
+            if (el.id === "showArFmgToggle") { state.showArFmg = el.checked; persist(); }
+            if (el.id === "rateEur") { state.rates.EUR = parseFloat(el.value) || 5200; persist(); }
+            if (el.id === "rateUsd") { state.rates.USD = parseFloat(el.value) || 4700; persist(); }
+
+            // Filter
+            if (el.id === "txFilter") renderTransactions();
+        });
+
+        // --- 3. Fixed Buttons (Non-dynamic) ---
+        const bind = (id, evt, fn) => { const x=$(id); if(x) x.addEventListener(evt, fn); };
+        bind("addTxBtn", "click", addTransaction);
+        bind("createProjectBtn", "click", createProject);
+        bind("backProjectsBtn", "click", () => navigate("projectsPage"));
+        bind("quickAddBtn", "click", () => navigate("transactionsPage"));
+        bind("exportBtn", "click", () => StorageService.export(state));
+        bind("resetBtn", "click", () => StorageService.reset());
+
         if ($("importInput")) $("importInput").addEventListener("change", (e) => {
             const f = e.target.files[0]; if (!f) return;
             StorageService.import(f, (err, ns) => { if (err) return alert("Invalide."); state = ns; renderAll(); alert("Importé."); });
         });
-        if ($("resetBtn")) $("resetBtn").addEventListener("click", () => StorageService.reset());
 
-        // Multi-currency Hints
-        if ($("txAmount")) $("txAmount").addEventListener("input", () => updateFmgHint("txAmount", "txCurrency", "txFmgHint"));
-        if ($("txCurrency")) $("txCurrency").addEventListener("change", () => updateFmgHint("txAmount", "txCurrency", "txFmgHint"));
-        document.addEventListener("input", (e) => { if (e.target.id === "detailExpenseAmount") updateFmgHint("detailExpenseAmount", "detailExpenseCurrency", "detailExpenseFmgHint"); });
-        document.addEventListener("change", (e) => { if (e.target.id === "detailExpenseCurrency") updateFmgHint("detailExpenseAmount", "detailExpenseCurrency", "detailExpenseFmgHint"); });
+        // --- 4. Form Helpers ---
+        document.addEventListener("input", e => {
+            const el = e.target;
+            if (el.id === "txAmount" || el.id === "txCurrency") updateFmgHint("txAmount", "txCurrency", "txFmgHint");
+            if (el.id === "detailExpenseAmount" || el.id === "detailExpenseCurrency") updateFmgHint("detailExpenseAmount", "detailExpenseCurrency", "detailExpenseFmgHint");
+        });
 
-        // Resize
+        // --- 5. System ---
         window.addEventListener("resize", () => {
             if ($("projectDetailPage") && $("projectDetailPage").classList.contains("active") && isLargeScreen()) navigate("projectsPage");
             renderAll();
         });
 
-        // PWA Install
         this.initPWA();
     },
 
@@ -68,10 +115,13 @@ const Events = {
 };
 
 function updateFmgHint(aId, cId, hId) {
-    const a = parseFloat($(aId).value), c = $(cId).value;
-    if (!state.showArFmg || !a || (c !== 'MGA' && c !== 'FMG')) { if ($(hId)) $(hId).style.display = 'none'; return; }
-    if ($(hId)) {
-        $(hId).textContent = `= ${c === 'MGA' ? Currency.format(Currency.arToFmg(a), 'FMG') : Currency.format(Currency.fmgToAr(a), 'MGA')}`;
-        $(hId).style.display = 'block';
-    }
+    const amountInput = document.getElementById(aId);
+    const currencyInput = document.getElementById(cId);
+    const hintArea = document.getElementById(hId);
+    if (!amountInput || !currencyInput || !hintArea) return;
+    const a = parseFloat(amountInput.value);
+    const c = currencyInput.value;
+    if (!state.showArFmg || !a || (c !== 'MGA' && c !== 'FMG')) { hintArea.style.display = 'none'; return; }
+    hintArea.textContent = `= ${c === 'MGA' ? Currency.format(Currency.arToFmg(a), 'FMG') : Currency.format(Currency.fmgToAr(a), 'MGA')}`;
+    hintArea.style.display = 'block';
 }
