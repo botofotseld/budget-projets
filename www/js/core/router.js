@@ -1,12 +1,13 @@
 
 /**
- * Router - Page and Project Tab navigation
+ * Router - Page and Project Tab navigation (V8 - Robust)
  */
 const Router = {
     /**
      * Main Page Navigation
      */
     navigate(pageId) {
+        console.log("Navigating to page:", pageId);
         document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
         const targetPage = document.getElementById(pageId);
         if (targetPage) targetPage.classList.add("active");
@@ -36,30 +37,21 @@ const Router = {
      * Internal Project Tab Navigation
      */
     switchProjectTab(projectId, tabId) {
-        // 1. Save UI State
+        console.log("Switching project tab:", projectId, tabId);
+        // 1. Update State
         uiState.activeProjectTab[projectId] = tabId;
 
-        // 2. Immediate UI Feedback (CSS classes)
-        const tabButtons = document.querySelectorAll(".detail-tabs button");
-        tabButtons.forEach(btn => {
-            const isTarget = btn.getAttribute("data-tab-id") === tabId;
-            btn.classList.toggle("active", isTarget);
-        });
-
-        const panes = document.querySelectorAll(".op-pane");
-        panes.forEach(pane => {
-            const isTarget = pane.id === `tab_${tabId}`;
-            pane.classList.toggle("active", isTarget);
-        });
-
-        console.log(`Switched to tab: ${tabId} for project: ${projectId}`);
+        // 2. Full re-render to ensure data consistency and UI sync
+        // This is much safer than manual class toggling
+        if (typeof renderProjectDetail === 'function') {
+            renderProjectDetail();
+        }
     }
 };
 
 // Global legacy aliases
 function navigate(pageId) { Router.navigate(pageId); }
 function switchDetailTab(btn, tabDivId) {
-    // Legacy support if needed, but we'll migrate to data-attributes
     const tabId = tabDivId.replace("tab_", "");
     Router.switchProjectTab(activeProjectId, tabId);
 }

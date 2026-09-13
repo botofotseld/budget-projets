@@ -1,23 +1,36 @@
 
 /**
- * Global Event Handlers Initialization (V7 - Robust Delegation)
+ * Global Event Handlers Initialization (V8 - Robust & Debugged)
  */
 const Events = {
     init() {
-        // --- 1. Global CLICK Delegation ---
+        console.log("Initializing Global Events...");
+
+        // --- 1. Global CLICK Delegation (Airtight) ---
         document.addEventListener("click", e => {
             const el = e.target.closest("[data-page], [data-nav], [data-tab-id], [data-action]");
             if (!el) return;
 
+            // Prevent default for buttons and links
+            if (el.tagName === 'BUTTON' || el.tagName === 'A') {
+                // e.preventDefault(); // Careful with this, might break some inputs
+            }
+
             const ds = el.dataset;
+            console.log("Global click caught:", { ds, id: el.id, class: el.className });
 
             // Page Navigation
-            if (ds.page) return navigate(ds.page);
-            if (ds.nav) return navigate(ds.nav);
+            if (ds.page) return Router.navigate(ds.page);
+            if (ds.nav) return Router.navigate(ds.nav);
 
             // Project Tab Switch
-            if (ds.tabId && activeProjectId) {
-                return Router.switchProjectTab(activeProjectId, ds.tabId);
+            if (ds.tabId) {
+                const pid = ds.projectId || activeProjectId;
+                console.log("Tab switch requested:", ds.tabId, "for project:", pid);
+                if (pid) {
+                    Router.switchProjectTab(pid, ds.tabId);
+                    return;
+                }
             }
 
             // Project Actions
@@ -63,16 +76,19 @@ const Events = {
             if (el.id === "txFilter") renderTransactions();
         });
 
-        // --- 3. Fixed Buttons (Non-dynamic) ---
-        const bind = (id, evt, fn) => { const x=$(id); if(x) x.addEventListener(evt, fn); };
+        // --- 3. Fixed Buttons (Non-dynamic, mostly at launch) ---
+        const bind = (id, evt, fn) => { const x=document.getElementById(id); if(x) x.addEventListener(evt, fn); };
+
         bind("addTxBtn", "click", addTransaction);
         bind("createProjectBtn", "click", createProject);
-        bind("backProjectsBtn", "click", () => navigate("projectsPage"));
-        bind("quickAddBtn", "click", () => navigate("transactionsPage"));
+        bind("txFilter", "change", renderTransactions);
+        bind("backProjectsBtn", "click", () => Router.navigate("projectsPage"));
+        bind("quickAddBtn", "click", () => Router.navigate("transactionsPage"));
         bind("exportBtn", "click", () => StorageService.export(state));
         bind("resetBtn", "click", () => StorageService.reset());
 
-        if ($("importInput")) $("importInput").addEventListener("change", (e) => {
+        const importIn = document.getElementById("importInput");
+        if (importIn) importIn.addEventListener("change", (e) => {
             const f = e.target.files[0]; if (!f) return;
             StorageService.import(f, (err, ns) => { if (err) return alert("Invalide."); state = ns; renderAll(); alert("Importé."); });
         });
@@ -86,7 +102,9 @@ const Events = {
 
         // --- 5. System ---
         window.addEventListener("resize", () => {
-            if ($("projectDetailPage") && $("projectDetailPage").classList.contains("active") && isLargeScreen()) navigate("projectsPage");
+            if (document.getElementById("projectDetailPage") && document.getElementById("projectDetailPage").classList.contains("active") && isLargeScreen()) {
+                Router.navigate("projectsPage");
+            }
             renderAll();
         });
 
@@ -98,18 +116,21 @@ const Events = {
         window.addEventListener("beforeinstallprompt", (e) => {
             e.preventDefault();
             deferredInstallPrompt = e;
-            if ($("installBtn")) $("installBtn").hidden = false;
+            const btn = document.getElementById("installBtn");
+            if (btn) btn.hidden = false;
         });
-        if ($("installBtn")) $("installBtn").addEventListener("click", async () => {
+        const installBtn = document.getElementById("installBtn");
+        if (installBtn) installBtn.addEventListener("click", async () => {
             if (!deferredInstallPrompt) return;
             deferredInstallPrompt.prompt();
             await deferredInstallPrompt.userChoice;
             deferredInstallPrompt = null;
-            $("installBtn").hidden = true;
+            installBtn.hidden = true;
         });
         window.addEventListener("appinstalled", () => {
             deferredInstallPrompt = null;
-            if ($("installBtn")) $("installBtn").hidden = true;
+            const btn = document.getElementById("installBtn");
+            if (btn) btn.hidden = true;
         });
     }
 };

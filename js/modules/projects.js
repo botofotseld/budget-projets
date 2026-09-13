@@ -1,6 +1,6 @@
 
 /**
- * Projects Module - Lifecycle and Detail rendering
+ * Projects Module - Lifecycle and Detail rendering (V8 - Robust)
  */
 function renderProjects() {
     const active = state.projects.filter(p => p.status !== "Archivé");
@@ -22,6 +22,7 @@ function createProject() {
 }
 
 function openProject(id) {
+    console.log("Opening project:", id);
     activeProjectId = id;
     if (isLargeScreen()) Router.navigate("projectsPage");
     else Router.navigate("projectDetailPage");
@@ -31,7 +32,13 @@ function openProject(id) {
 function renderProjectDetail() {
     const p = state.projects.find(p => p.id === activeProjectId);
     const container = isLargeScreen() ? $("tabletDetailPane") : $("projectDetail");
-    if (!p) { if (container) container.innerHTML = isLargeScreen() ? '<div class="empty-detail"><p>Sélectionnez un projet pour voir les détails</p></div>' : ''; return; }
+
+    if (!p) {
+        if (container) container.innerHTML = isLargeScreen() ? '<div class="empty-detail"><p>Sélectionnez un projet pour voir les détails</p></div>' : '';
+        return;
+    }
+
+    console.log("Rendering project detail for:", p.name, "Active Tab:", uiState.activeProjectTab[p.id]);
 
     const tabs = p.type === 'detailed' ? (PROJECT_TYPES[p.subType]?.tabs || ["summary", "expenses", "tasks"]) : [];
     if (p.customTabs) p.customTabs.forEach(ct => tabs.push(`custom_${ct.id}`));
@@ -39,48 +46,57 @@ function renderProjectDetail() {
     const activeTab = uiState.activeProjectTab[p.id] || tabs[0] || "summary";
 
     if (container) {
-        container.innerHTML = `
-            <div class="detail-pane-content">
-                ${UIModules.renderProjectHeader(p)}
-                ${p.type === 'detailed' ? `
-                    <div class="detail-tabs">
-                        ${tabs.map(t => {
-                            const label = TAB_CONFIG[t]?.label || (p.customTabs.find(c => `custom_${c.id}` === t)?.name) || t;
-                            const isActive = t === activeTab;
-                            return `<button class="${isActive ? 'active' : ''}" data-tab-id="${t}">${label}</button>`;
-                        }).join("")}
-                    </div>
-                    ${tabs.map(t => `
-                        <div id="tab_${t}" class="op-pane ${t === activeTab ? 'active' : ''}">
-                            ${renderTabRouter(p, t)}
+        try {
+            container.innerHTML = `
+                <div class="detail-pane-content">
+                    ${UIModules.renderProjectHeader(p)}
+                    ${p.type === 'detailed' ? `
+                        <div class="detail-tabs">
+                            ${tabs.map(t => {
+                                const label = TAB_CONFIG[t]?.label || (p.customTabs.find(c => `custom_${c.id}` === t)?.name) || t;
+                                const isActive = t === activeTab;
+                                return `<button type="button" class="project-tab ${isActive ? 'active' : ''}" data-tab-id="${t}" data-project-id="${p.id}">${label}</button>`;
+                            }).join("")}
                         </div>
-                    `).join("")}
-                ` : `<div class="card"><h2>Historique des versements</h2>${projectTransfers(p.id)}</div>`}
-            </div>`;
+                        <div class="active-tab-content">
+                            ${renderTabRouter(p, activeTab)}
+                        </div>
+                    ` : `<div class="card"><h2>Historique des versements</h2>${projectTransfers(p.id)}</div>`}
+                </div>`;
+        } catch (e) {
+            console.error("Crash during project detail render:", e);
+            container.innerHTML = `<div class="card danger">Une erreur est survenue lors de l'affichage du projet.</div>`;
+        }
     }
 }
 
 function renderTabRouter(p, tabId) {
-    const config = TAB_CONFIG[tabId];
-    // Specialized Modules
-    if (tabId === "summary") return UIModules.renderSummaryModule(p);
-    if (tabId === "expenses" || tabId === "purchases") return UIModules.renderExpensesModule(p);
-    if (tabId === "materials") return UIModules.renderMaterialsModule(p);
-    if (tabId === "workers" || tabId === "vendors" || tabId === "participants" || tabId === "team") return UIModules.renderWorkersModule(p);
-    if (tabId === "tasks" || tabId === "planning" || tabId === "progression" || tabId === "deadlines") return UIModules.renderTasksModule(p);
-    if (tabId === "stock") return UIModules.renderInventoryModule(p);
-    if (config && config.module === "booking") return UIModules.renderBookingModule(p, tabId);
-    if (tabId === "custom_tabs_manager") return UIModules.renderCustomTabsManager(p);
+    console.log("Router calling module for tab:", tabId);
+    try {
+        const config = TAB_CONFIG[tabId];
+        // Specialized Modules
+        if (tabId === "summary") return UIModules.renderSummaryModule(p);
+        if (tabId === "expenses" || tabId === "purchases") return UIModules.renderExpensesModule(p);
+        if (tabId === "materials") return UIModules.renderMaterialsModule(p);
+        if (tabId === "workers" || tabId === "vendors" || tabId === "participants" || tabId === "team") return UIModules.renderWorkersModule(p);
+        if (tabId === "tasks" || tabId === "planning" || tabId === "progression" || tabId === "deadlines") return UIModules.renderTasksModule(p);
+        if (tabId === "stock") return UIModules.renderInventoryModule(p);
+        if (config && config.module === "booking") return UIModules.renderBookingModule(p, tabId);
+        if (tabId === "custom_tabs_manager") return UIModules.renderCustomTabsManager(p);
 
-    // Generic Modules
-    if (config && config.module === "generic") return UIModules.renderGenericModule(p, tabId);
-    if (config && config.module === "generic_financial") return UIModules.renderGenericModule(p, tabId); // Same for now
+        // Generic Modules
+        if (config && config.module === "generic") return UIModules.renderGenericModule(p, tabId);
+        if (config && config.module === "generic_financial") return UIModules.renderGenericModule(p, tabId);
 
-    return `<div class="empty">Contenu bientôt disponible pour ${tabId}</div>`;
+        return `<div class="empty">Contenu bientôt disponible pour ${tabId}</div>`;
+    } catch (e) {
+        console.error(`Error rendering tab ${tabId}:`, e);
+        return `<div class="card warning">Erreur d'affichage de l'onglet ${tabId}.</div>`;
+    }
 }
 
 function updateProjectStatus(id, s) { const p = state.projects.find(x => x.id === id); if (p) { p.status = s; persist(); } }
-function archiveProject(id) { updateProjectStatus(id, "Archivé"); if (!isLargeScreen()) navigate("projectsPage"); }
+function archiveProject(id) { updateProjectStatus(id, "Archivé"); if (!isLargeScreen()) Router.navigate("projectsPage"); }
 function reactivateProject(id) { updateProjectStatus(id, "En cours"); }
 
 function addProjectExpense(projectId) {
@@ -115,6 +131,7 @@ function addCustomTab(projectId, name, refId = null) {
     const p = state.projects.find(x => x.id === projectId);
     if (!p) return;
     p.customTabs = p.customTabs || [];
+    if (refId && p.customTabs.find(t => t.id === refId)) return alert("Cet onglet existe déjà.");
     p.customTabs.push({ id: refId || uid(), name });
     persist();
 }
