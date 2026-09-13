@@ -1,15 +1,29 @@
-const CACHE = "budget-projets-pwa-20260913001259";
+const CACHE = "budget-projets-pwa-20260913155543";
 
 const ASSETS = [
   "./",
   "./index.html",
   "./css/style.css",
-  "./js/storage.js",
-  "./js/currency.js",
-  "./js/app.js",
   "./manifest.webmanifest",
   "./icons/icon-192.png",
-  "./icons/icon-512.png"
+  "./icons/icon-512.png",
+  "./js/app.js",
+  "./js/core/state.js",
+  "./js/core/router.js",
+  "./js/core/events.js",
+  "./js/services/currency-service.js",
+  "./js/services/finance-service.js",
+  "./js/services/migration-service.js",
+  "./js/services/project-service.js",
+  "./js/services/relation-service.js",
+  "./js/services/storage-service.js",
+  "./js/services/transaction-service.js",
+  "./js/projects/project-configs.js",
+  "./js/modules/ui-modules.js",
+  "./js/modules/dashboard.js",
+  "./js/modules/projects.js",
+  "./js/modules/transactions.js",
+  "./js/modules/monthly.js"
 ];
 
 self.addEventListener("install", event => {
@@ -39,11 +53,9 @@ self.addEventListener("fetch", event => {
     fetch(event.request)
       .then(response => {
         const copy = response.clone();
-
         caches.open(CACHE).then(cache => {
           cache.put(event.request, copy);
         });
-
         return response;
       })
       .catch(() => caches.match(event.request))

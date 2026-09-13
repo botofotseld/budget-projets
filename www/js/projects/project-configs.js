@@ -1,12 +1,18 @@
 
 /**
- * Global Configuration for all Project Types and their hierarchical structure
+ * Global Configuration for all Project Types (V5 - Intelligent Connections)
  */
+
+const PROJECT_GROUPS = [
+    "Habitat & Immobilier", "Mobilité", "Voyages", "Études & Formation",
+    "Entreprise & Commerce", "Vie personnelle & familiale", "Équipement & Achats",
+    "Épargne & Investissement", "Travail & Carrière", "Personnalisé"
+];
 
 const PROJECT_TYPES = {
     house: {
         group: "Habitat & Immobilier", label: "Maison", icon: "🏠",
-        tabs: ["summary", "expenses", "materials", "workers", "tasks"]
+        tabs: ["summary", "expenses", "materials", "workers", "tasks", "documents"]
     },
     land: {
         group: "Habitat & Immobilier", label: "Terrain", icon: "🌳",
@@ -18,11 +24,11 @@ const PROJECT_TYPES = {
     },
     travel: {
         group: "Voyages", label: "Voyage", icon: "✈️",
-        tabs: ["summary", "itinerary", "transport", "lodging", "expenses", "documents"]
+        tabs: ["summary", "itinerary", "transport", "lodging", "activities", "budget_detail", "documents"]
     },
     studies: {
         group: "Études & Formation", label: "Études", icon: "🎓",
-        tabs: ["summary", "formation", "enrollment", "fees", "modules", "materials", "tasks"]
+        tabs: ["summary", "formation", "enrollment", "fees", "modules", "materials", "deadlines"]
     },
     business: {
         group: "Entreprise & Commerce", label: "Entreprise", icon: "💼",
@@ -34,30 +40,30 @@ const PROJECT_TYPES = {
     },
     wedding: {
         group: "Vie personnelle & familiale", label: "Mariage", icon: "💍",
-        tabs: ["summary", "budget_detail", "vendors", "guests", "expenses", "tasks"]
+        tabs: ["summary", "budget_detail", "vendors", "guests", "purchases", "planning"]
     },
     computer: {
-        group: "Équipement & Achats", label: "Achat Ordinateur", icon: "💻",
+        group: "Équipement & Achats", label: "Achat d’ordinateur", icon: "💻",
         tabs: ["summary", "criteria", "comparison", "budget_detail", "buy_info", "accessories"]
     },
     saving: {
         group: "Épargne & Investissement", label: "Épargne", icon: "💰",
-        tabs: ["summary", "savings_goal", "transfers", "withdrawals", "tasks"]
+        tabs: ["summary", "savings_goal", "transfers", "withdrawals", "progression"]
+    },
+    family: {
+        group: "Vie personnelle & familiale", label: "Projet familial", icon: "👪",
+        tabs: ["summary", "budget_detail", "participants", "expenses", "tasks"]
+    },
+    professional: {
+        group: "Travail & Carrière", label: "Projet professionnel", icon: "🛠️",
+        tabs: ["summary", "deliverables", "budget_detail", "team", "tasks", "documents"]
     },
     invest: {
         group: "Épargne & Investissement", label: "Investissement", icon: "📈",
         tabs: ["summary", "capital", "income_stream", "fees", "performance", "documents"]
     },
-    family: {
-        group: "Vie personnelle & familiale", label: "Projet Familial", icon: "👪",
-        tabs: ["summary", "budget_detail", "participants", "expenses", "tasks"]
-    },
-    professional: {
-        group: "Travail & Carrière", label: "Projet Professionnel", icon: "🛠️",
-        tabs: ["summary", "deliverables", "budget_detail", "team", "tasks", "documents"]
-    },
     custom: {
-        group: "Personnalisé", label: "Autre projet personnalisé", icon: "⚙️",
+        group: "Personnalisé", label: "Projet personnalisé", icon: "⚙️",
         tabs: ["summary", "custom_tabs_manager"]
     }
 };
@@ -69,140 +75,104 @@ const TAB_CONFIG = {
     workers: { label: "Intervenants", module: "workers" },
     tasks: { label: "Avancement", module: "tasks" },
     land_info: { label: "Parcelle", module: "generic", fields: [
-        { id: 'surface', label: 'Surface', placeholder: 'Ex: 500m²' },
+        { id: 'surface', label: 'Surface (m²)' },
         { id: 'location', label: 'Localisation' },
-        { id: 'parcel', label: 'N° Parcelle' },
-        { id: 'title', label: 'Statut Titre' }
+        { id: 'parcel', label: 'Réf Cadastrale' },
+        { id: 'title', label: 'Statut Juridique' },
+        { id: 'price', label: 'Prix convenu', type: 'number' },
+        { id: 'seller', label: 'Vendeur' }
     ]},
+    fees: { label: "Frais & Taxes", module: "generic_financial", category: "Frais" },
     documents: { label: "Documents", module: "generic", fields: [
-        { id: 'name', label: 'Nom du document' },
-        { id: 'status', label: 'Statut' }
-    ]},
-    fees: { label: "Frais", module: "generic", fields: [
-        { id: 'label', label: 'Nature' },
-        { id: 'amount', label: 'Montant', type: 'number' }
+        { id: 'name', label: 'Nom' },
+        { id: 'status', label: 'Statut' },
+        { id: 'expiry', label: 'Expiration', type: 'date' }
     ]},
     car_info: { label: "Véhicule", module: "generic", fields: [
-        { id: 'brand', label: 'Marque/Modèle' },
+        { id: 'brand', label: 'Marque' },
+        { id: 'model', label: 'Modèle' },
         { id: 'year', label: 'Année', type: 'number' },
-        { id: 'km', label: 'Kilométrage', type: 'number' }
+        { id: 'km', label: 'Kilométrage', type: 'number' },
+        { id: 'vin', label: 'N° Châssis (VIN)' },
+        { id: 'plate', label: 'Immatriculation' }
     ]},
     buy_finance: { label: "Achat & Financement", module: "generic", fields: [
         { id: 'price', label: 'Prix négocié', type: 'number' },
-        { id: 'acompte', label: 'Acompte payé', type: 'number' },
-        { id: 'credit', label: 'Crédit / Mensualité' }
+        { id: 'deposit', label: 'Acompte versé', type: 'number' },
+        { id: 'credit', label: 'Crédit / Reste' }
     ]},
-    maintenance: { label: "Entretien", module: "generic", fields: [
-        { id: 'date', label: 'Date', type: 'date' },
-        { id: 'label', label: 'Opération' },
-        { id: 'cost', label: 'Coût', type: 'number' }
-    ]},
+    maintenance: { label: "Entretien", module: "generic_financial", category: "Entretien" },
     itinerary: { label: "Itinéraire", module: "generic", fields: [
-        { id: 'step', label: 'Étape' },
-        { id: 'date', label: 'Date', type: 'date' }
+        { id: 'date', label: 'Date', type: 'date' },
+        { id: 'place', label: 'Lieu' },
+        { id: 'note', label: 'Activité' }
     ]},
-    transport: { label: "Transport", module: "generic", fields: [
-        { id: 'mode', label: 'Moyen (Vol, Train...)' },
-        { id: 'ref', label: 'N° de référence' },
-        { id: 'cost', label: 'Prix', type: 'number' }
-    ]},
-    lodging: { label: "Hébergement", module: "generic", fields: [
-        { id: 'name', label: 'Nom hôtel/Airbnb' },
-        { id: 'cost', label: 'Prix total', type: 'number' }
-    ]},
+    transport: { label: "Transport", module: "booking", type: "Transport" },
+    lodging: { label: "Hébergement", module: "booking", type: "Hébergement" },
+    activities: { label: "Activités", module: "booking", type: "Activité" },
     formation: { label: "Formation", module: "generic", fields: [
         { id: 'school', label: 'Établissement' },
-        { id: 'title', label: 'Diplôme / Spécialité' }
+        { id: 'title', label: 'Diplôme / Spécialité' },
+        { id: 'duration', label: 'Durée' }
     ]},
-    enrollment: { label: "Inscriptions", module: "generic", fields: [
-        { id: 'label', label: 'Type de frais' },
-        { id: 'amount', label: 'Montant', type: 'number' }
-    ]},
+    enrollment: { label: "Inscriptions", module: "generic_financial", category: "Scolarité" },
     modules: { label: "Cours & Modules", module: "generic", fields: [
-        { id: 'name', label: 'Nom du module' },
-        { id: 'status', label: 'Statut / Note' }
+        { id: 'name', label: 'Module' },
+        { id: 'status', label: 'Statut (Validé/En cours)' },
+        { id: 'grade', label: 'Note/Résultat' }
     ]},
+    deadlines: { label: "Échéances", module: "tasks" },
     activity: { label: "Activité", module: "generic", fields: [
         { id: 'goal', label: 'Objectif principal' },
-        { id: 'kpi', label: 'Indicateur de succès' }
+        { id: 'kpis', label: 'Indicateurs clés' }
     ]},
-    capital: { label: "Capital & Financement", module: "generic", fields: [
-        { id: 'source', label: 'Source des fonds' },
-        { id: 'amount', label: 'Montant engagé', type: 'number' }
-    ]},
-    team: { label: "Équipe", module: "generic", fields: [
-        { id: 'name', label: 'Nom' },
-        { id: 'role', label: 'Rôle / Responsabilité' }
-    ]},
-    stock: { label: "Stock", module: "generic", fields: [
-        { id: 'item', label: 'Article' },
-        { id: 'qty', label: 'Quantité' },
-        { id: 'buy', label: 'Prix achat unit.', type: 'number' },
-        { id: 'sell', label: 'Prix vente unit.', type: 'number' }
-    ]},
+    capital: { label: "Capital & Financement", module: "generic_financial", category: "Investissement" },
+    team: { label: "Équipe", module: "workers" },
+    stock: { label: "Stock", module: "inventory" },
     suppliers: { label: "Fournisseurs", module: "generic", fields: [
         { id: 'name', label: 'Nom' },
-        { id: 'contact', label: 'Contact' }
+        { id: 'contact', label: 'Contact' },
+        { id: 'items', label: 'Articles fournis' }
     ]},
-    sales: { label: "Ventes", module: "generic", fields: [
-        { id: 'date', label: 'Date', type: 'date' },
-        { id: 'amount', label: 'Montant total reçu', type: 'number' }
-    ]},
+    sales: { label: "Ventes", module: "sales" },
     cash_flow: { label: "Trésorerie", module: "summary" },
     budget_detail: { label: "Budget", module: "generic", fields: [
-        { id: 'label', label: 'Poste de dépense' },
+        { id: 'label', label: 'Poste' },
         { id: 'planned', label: 'Montant prévu', type: 'number' }
     ]},
-    vendors: { label: "Prestataires", module: "generic", fields: [
-        { id: 'name', label: 'Nom' },
-        { id: 'service', label: 'Service fourni' },
-        { id: 'cost', label: 'Prix convenu', type: 'number' }
-    ]},
+    vendors: { label: "Prestataires", module: "workers" },
     guests: { label: "Invités", module: "generic", fields: [
         { id: 'name', label: 'Nom' },
-        { id: 'confirmation', label: 'Confirmation (Oui/Non/?)' }
+        { id: 'confirmation', label: 'Confirmation (Oui/Non/?)' },
+        { id: 'plusone', label: 'Accompagnants', type: 'number' }
     ]},
+    purchases: { label: "Achats", module: "expenses" },
+    planning: { label: "Planning", module: "tasks" },
     criteria: { label: "Critères", module: "generic", fields: [
         { id: 'spec', label: 'Caractéristique (RAM, CPU...)' },
         { id: 'min', label: 'Minimum requis' }
     ]},
-    comparison: { label: "Comparatif", module: "generic", fields: [
+    comparison: { label: "Modèles comparés", module: "generic", fields: [
         { id: 'model', label: 'Modèle' },
-        { id: 'price', label: 'Prix constaté', type: 'number' }
+        { id: 'price', label: 'Prix constaté', type: 'number' },
+        { id: 'link', label: 'Lien/Vendeur' }
     ]},
-    buy_info: { label: "Achat", module: "generic", fields: [
-        { id: 'store', label: 'Enseigne / Vendeur' },
-        { id: 'amount', label: 'Prix payé', type: 'number' }
-    ]},
-    accessories: { label: "Accessoires & Garantie", module: "generic", fields: [
-        { id: 'item', label: 'Accessoire' },
-        { id: 'warranty', label: 'Fin de garantie', type: 'date' }
-    ]},
+    buy_info: { label: "Achat", module: "generic_financial", category: "Équipement" },
+    accessories: { label: "Accessoires", module: "generic_financial", category: "Accessoires" },
     savings_goal: { label: "Objectif", module: "generic", fields: [
         { id: 'target', label: 'Montant cible', type: 'number' },
-        { id: 'date', label: 'Échéance prévue', type: 'date' }
+        { id: 'date', label: 'Échéance', type: 'date' }
     ]},
     transfers: { label: "Versements", module: "summary" },
-    withdrawals: { label: "Retraits", module: "generic", fields: [
-        { id: 'date', label: 'Date', type: 'date' },
-        { id: 'amount', label: 'Montant retiré', type: 'number' }
-    ]},
-    participants: { label: "Participants", module: "generic", fields: [
-        { id: 'name', label: 'Nom' },
-        { id: 'contribution', label: 'Contribution prévue', type: 'number' }
-    ]},
+    withdrawals: { label: "Retraits", module: "generic_financial", category: "Retrait" },
+    progression: { label: "Progression", module: "summary" },
+    participants: { label: "Participants", module: "workers" },
     deliverables: { label: "Objectifs & Livrables", module: "generic", fields: [
         { id: 'name', label: 'Nom' },
         { id: 'status', label: 'Statut' }
     ]},
-    income_stream: { label: "Revenus", module: "generic", fields: [
-        { id: 'source', label: 'Actif / Source' },
-        { id: 'amount', label: 'Revenu reçu', type: 'number' }
-    ]},
-    performance: { label: "Performance", module: "generic", fields: [
-        { id: 'roi', label: 'Rendement %' },
-        { id: 'val', label: 'Valeur actuelle estimée', type: 'number' }
-    ]},
+    income_stream: { label: "Revenus", module: "generic_revenue" },
+    performance: { label: "Performance", module: "summary" },
     custom_tabs_manager: { label: "Personnaliser", module: "custom_manager" }
 };
 
