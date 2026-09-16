@@ -6,7 +6,7 @@ function renderProjects() {
     const active = state.projects.filter(p => p.status !== "Archivé");
     const archived = state.projects.filter(p => p.status === "Archivé");
     if ($("projectsList")) {
-        $("projectsList").innerHTML = `<div class="section-head"><h2>Projets actifs</h2></div>${active.length ? active.map(p => projectCard(p)).join("") : `<div class="card empty">Aucun projet actif</div>`}${archived.length ? `<div class="section-head"><h2>Archivés</h2></div>${archived.map(p => `<div class="card"><div class="project-card-header"><strong>${p.icon} ${esc(p.name)}</strong><button class="secondary" onclick="reactivateProject('${p.id}')">Réactiver</button></div></div>`).join("")}` : ""}`;
+        $("projectsList").innerHTML = `<div class="section-head"><h2>Projets actifs</h2></div>${active.length ? active.map(p => projectCard(p)).join("") : `<div class="card empty">Aucun projet actif</div>`}${archived.length ? `<div class="section-head"><h2>Archivés</h2></div>${archived.map(p => `<div class="card"><div class="project-card-header"><strong>${p.icon} ${esc(p.name)}</strong><button class="secondary" data-action="reactivate-project" data-project-id="${p.id}">Réactiver</button></div></div>`).join("")}` : ""}`;
     }
 }
 
@@ -40,10 +40,13 @@ function renderProjectDetail() {
 
     console.log("Rendering project detail for:", p.name, "Active Tab:", uiState.activeProjectTab[p.id]);
 
-    const tabs = p.type === 'detailed' ? (PROJECT_TYPES[p.subType]?.tabs || ["summary", "expenses", "tasks"]) : [];
-    if (p.customTabs) p.customTabs.forEach(ct => tabs.push(`custom_${ct.id}`));
+    const baseTabs = p.type === 'detailed' ? [...(PROJECT_TYPES[p.subType]?.tabs || ["summary", "expenses", "tasks"])] : [];
+    const customTabs = (p.customTabs || []).map(tab => tab.moduleId || tab.refId || tab.id).filter(Boolean);
+    const tabs = [...new Set([...baseTabs, ...customTabs])];
 
-    const activeTab = uiState.activeProjectTab[p.id] || tabs[0] || "summary";
+    const requestedTab = uiState.activeProjectTab[p.id];
+    const activeTab = tabs.includes(requestedTab) ? requestedTab : (tabs[0] || "summary");
+    uiState.activeProjectTab[p.id] = activeTab;
 
     if (container) {
         try {
@@ -53,7 +56,8 @@ function renderProjectDetail() {
                     ${p.type === 'detailed' ? `
                         <div class="detail-tabs">
                             ${tabs.map(t => {
-                                const label = TAB_CONFIG[t]?.label || (p.customTabs.find(c => `custom_${c.id}` === t)?.name) || t;
+                                const customTab = (p.customTabs || []).find(c => (c.moduleId || c.refId || c.id) === t);
+                                const label = TAB_CONFIG[t]?.label || customTab?.name || t;
                                 const isActive = t === activeTab;
                                 return `<button type="button" class="project-tab ${isActive ? 'active' : ''}" data-tab-id="${t}" data-project-id="${p.id}">${label}</button>`;
                             }).join("")}
@@ -74,19 +78,21 @@ function renderTabRouter(p, tabId) {
     console.log("Router calling module for tab:", tabId);
     try {
         const config = TAB_CONFIG[tabId];
-        // Specialized Modules
-        if (tabId === "summary") return UIModules.renderSummaryModule(p);
-        if (tabId === "expenses" || tabId === "purchases") return UIModules.renderExpensesModule(p);
+        // Specialized and reusable modules
+        if (config?.module === "summary") return UIModules.renderSummaryModule(p);
+        if (config?.module === "expenses") return UIModules.renderExpensesModule(p);
         if (tabId === "materials") return UIModules.renderMaterialsModule(p);
-        if (tabId === "workers" || tabId === "vendors" || tabId === "participants" || tabId === "team") return UIModules.renderWorkersModule(p);
-        if (tabId === "tasks" || tabId === "planning" || tabId === "progression" || tabId === "deadlines") return UIModules.renderTasksModule(p);
-        if (tabId === "stock") return UIModules.renderInventoryModule(p);
+        if (config?.module === "workers") return UIModules.renderWorkersModule(p, tabId);
+        if (config?.module === "tasks") return UIModules.renderTasksModule(p);
+        if (config?.module === "inventory") return UIModules.renderInventoryModule(p, tabId);
         if (config && config.module === "booking") return UIModules.renderBookingModule(p, tabId);
         if (tabId === "custom_tabs_manager") return UIModules.renderCustomTabsManager(p);
 
         // Generic Modules
         if (config && config.module === "generic") return UIModules.renderGenericModule(p, tabId);
-        if (config && config.module === "generic_financial") return UIModules.renderGenericModule(p, tabId);
+        if (config && ["generic_financial", "generic_revenue", "sales"].includes(config.module)) {
+            return UIModules.renderFinancialModule(p, tabId);
+        }
 
         return `<div class="empty">Contenu bientôt disponible pour ${tabId}</div>`;
     } catch (e) {
@@ -95,8 +101,8 @@ function renderTabRouter(p, tabId) {
     }
 }
 
-function updateProjectStatus(id, s) { const p = state.projects.find(x => x.id === id); if (p) { p.status = s; persist(); } }
-function archiveProject(id) { updateProjectStatus(id, "Archivé"); if (!isLargeScreen()) Router.navigate("projectsPage"); }
+function updateProjectStatus(id, s) { const p = state.projects.find(x => x.id === id); if (p) { p.status = s; if (s === "Archivé" && activeProjectId === id) activeProjectId = null; persist(); } }
+function archiveProject(id) { updateProjectStatus(id, "Archivé"); Router.navigate("projectsPage"); }
 function reactivateProject(id) { updateProjectStatus(id, "En cours"); }
 
 function addProjectExpense(projectId) {
@@ -131,15 +137,24 @@ function addCustomTab(projectId, name, refId = null) {
     const p = state.projects.find(x => x.id === projectId);
     if (!p) return;
     p.customTabs = p.customTabs || [];
-    if (refId && p.customTabs.find(t => t.id === refId)) return alert("Cet onglet existe déjà.");
-    p.customTabs.push({ id: refId || uid(), name });
+    const moduleId = refId || uid();
+    const baseTabs = PROJECT_TYPES[p.subType]?.tabs || [];
+    const alreadyAdded = p.customTabs.some(t => (t.moduleId || t.refId || t.id) === moduleId);
+    if (baseTabs.includes(moduleId) || alreadyAdded) return alert("Cet onglet existe déjà.");
+    p.customTabs.push({ id: uid(), moduleId, name });
     persist();
 }
 
 function deleteCustomTab(projectId, tabId) {
     if(confirm("Retirer ce module ?")) {
         const p = state.projects.find(x => x.id === projectId);
+        if (!p) return;
         p.customTabs = p.customTabs.filter(t => t.id !== tabId);
+        const activeModule = uiState.activeProjectTab[projectId];
+        const removed = p.customTabs.find(t => (t.moduleId || t.refId || t.id) === activeModule);
+        if (!removed && !(PROJECT_TYPES[p.subType]?.tabs || []).includes(activeModule)) {
+            uiState.activeProjectTab[projectId] = "summary";
+        }
         persist();
     }
 }

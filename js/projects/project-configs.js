@@ -82,7 +82,7 @@ const TAB_CONFIG = {
         { id: 'price', label: 'Prix convenu', type: 'number' },
         { id: 'seller', label: 'Vendeur' }
     ]},
-    fees: { label: "Frais & Taxes", module: "generic_financial", category: "Frais" },
+    fees: { label: "Frais & Taxes", module: "generic_financial", category: "Frais", transactionType: "expense" },
     documents: { label: "Documents", module: "generic", fields: [
         { id: 'name', label: 'Nom' },
         { id: 'status', label: 'Statut' },
@@ -101,7 +101,7 @@ const TAB_CONFIG = {
         { id: 'deposit', label: 'Acompte versé', type: 'number' },
         { id: 'credit', label: 'Crédit / Reste' }
     ]},
-    maintenance: { label: "Entretien", module: "generic_financial", category: "Entretien" },
+    maintenance: { label: "Entretien", module: "generic_financial", category: "Entretien", transactionType: "expense" },
     itinerary: { label: "Itinéraire", module: "generic", fields: [
         { id: 'date', label: 'Date', type: 'date' },
         { id: 'place', label: 'Lieu' },
@@ -115,7 +115,7 @@ const TAB_CONFIG = {
         { id: 'title', label: 'Diplôme / Spécialité' },
         { id: 'duration', label: 'Durée' }
     ]},
-    enrollment: { label: "Inscriptions", module: "generic_financial", category: "Scolarité" },
+    enrollment: { label: "Inscriptions", module: "generic_financial", category: "Scolarité", transactionType: "expense" },
     modules: { label: "Cours & Modules", module: "generic", fields: [
         { id: 'name', label: 'Module' },
         { id: 'status', label: 'Statut (Validé/En cours)' },
@@ -126,7 +126,7 @@ const TAB_CONFIG = {
         { id: 'goal', label: 'Objectif principal' },
         { id: 'kpis', label: 'Indicateurs clés' }
     ]},
-    capital: { label: "Capital & Financement", module: "generic_financial", category: "Investissement" },
+    capital: { label: "Capital & Financement", module: "generic_financial", category: "Investissement", transactionType: "purchase" },
     team: { label: "Équipe", module: "workers" },
     stock: { label: "Stock", module: "inventory" },
     suppliers: { label: "Fournisseurs", module: "generic", fields: [
@@ -134,7 +134,7 @@ const TAB_CONFIG = {
         { id: 'contact', label: 'Contact' },
         { id: 'items', label: 'Articles fournis' }
     ]},
-    sales: { label: "Ventes", module: "sales" },
+    sales: { label: "Ventes", module: "sales", category: "Ventes", transactionType: "revenue" },
     cash_flow: { label: "Trésorerie", module: "summary" },
     budget_detail: { label: "Budget", module: "generic", fields: [
         { id: 'label', label: 'Poste' },
@@ -157,21 +157,21 @@ const TAB_CONFIG = {
         { id: 'price', label: 'Prix constaté', type: 'number' },
         { id: 'link', label: 'Lien/Vendeur' }
     ]},
-    buy_info: { label: "Achat", module: "generic_financial", category: "Équipement" },
-    accessories: { label: "Accessoires", module: "generic_financial", category: "Accessoires" },
+    buy_info: { label: "Achat", module: "generic_financial", category: "Équipement", transactionType: "purchase" },
+    accessories: { label: "Accessoires", module: "generic_financial", category: "Accessoires", transactionType: "purchase" },
     savings_goal: { label: "Objectif", module: "generic", fields: [
         { id: 'target', label: 'Montant cible', type: 'number' },
         { id: 'date', label: 'Échéance', type: 'date' }
     ]},
     transfers: { label: "Versements", module: "summary" },
-    withdrawals: { label: "Retraits", module: "generic_financial", category: "Retrait" },
+    withdrawals: { label: "Retraits", module: "generic_financial", category: "Retrait", transactionType: "withdrawal" },
     progression: { label: "Progression", module: "summary" },
     participants: { label: "Participants", module: "workers" },
     deliverables: { label: "Objectifs & Livrables", module: "generic", fields: [
         { id: 'name', label: 'Nom' },
         { id: 'status', label: 'Statut' }
     ]},
-    income_stream: { label: "Revenus", module: "generic_revenue" },
+    income_stream: { label: "Revenus", module: "generic_revenue", category: "Revenus", transactionType: "revenue" },
     performance: { label: "Performance", module: "summary" },
     custom_tabs_manager: { label: "Personnaliser", module: "custom_manager" }
 };

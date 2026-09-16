@@ -14,7 +14,7 @@ const UIModules = {
                 <div class="project-card-header">
                     <div>
                         <div class="project-name" style="font-size: 24px;">${p.icon} ${esc(p.name)}</div>
-                        <select class="status-select">
+                        <select class="status-select" data-project-id="${p.id}">
                             ${ProjectService.STATUSES.map(s => `<option value="${s}" ${p.status === s ? 'selected' : ''}>${s}</option>`).join("")}
                         </select>
                     </div>
@@ -82,7 +82,7 @@ const UIModules = {
                             <h3>Tâches en attente</h3>
                             ${overdueTasks.length ? overdueTasks.map(t => `
                                 <div class="task-row">
-                                    <label><input type="checkbox" onchange="toggleTask('${t.id}','${p.id}')" /><span>${esc(t.name)}</span></label>
+                                    <label><input type="checkbox" data-action="toggle-task" data-task-id="${t.id}" data-project-id="${p.id}" /><span>${esc(t.name)}</span></label>
                                 </div>
                             `).join("") : '<div class="empty">Toutes les tâches sont à jour</div>'}
                         </div>
@@ -129,18 +129,18 @@ const UIModules = {
     /**
      * Module: Workers
      */
-    renderWorkersModule(p) {
-        const data = ProjectService.getData(p.id, 'workers');
+    renderWorkersModule(p, tabId = 'workers') {
+        const data = ProjectService.getData(p.id, tabId);
         return `
             <div class="card form-card">
                 <h2>Ajouter un intervenant</h2>
                 <div class="field"><label>Nom complet</label><input id="worker_name" /></div>
                 <div class="field"><label>Mission / Rôle</label><input id="worker_role" /></div>
                 <div class="field"><label>Montant total convenu (${p.currency})</label><input id="worker_total" type="number" /></div>
-                <button class="primary full" data-action="save-worker" data-project-id="${p.id}">Enregistrer l'intervenant</button>
+                <button class="primary full" data-action="save-worker" data-project-id="${p.id}" data-tab-id="${tabId}">Enregistrer l'intervenant</button>
             </div>
             ${data.map(d => {
-                const stats = FinanceService.getItemStats('workers', d.id, p.currency);
+                const stats = FinanceService.getItemStats(tabId, d.id, p.currency);
                 return `
                     <div class="card">
                         <div style="display:flex; justify-content:space-between; align-items:flex-start">
@@ -207,14 +207,17 @@ const UIModules = {
     /**
      * Module: Inventory / Stock
      */
-    renderInventoryModule(p) {
-        const data = ProjectService.getData(p.id, 'inventory');
+    renderInventoryModule(p, tabId = 'stock') {
+        const data = [
+            ...ProjectService.getData(p.id, tabId),
+            ...ProjectService.getData(p.id, 'inventory').filter(legacy => tabId !== 'inventory')
+        ];
         return `
             <div class="card form-card">
                 <h2>Nouveau produit</h2>
                 <div class="field"><label>Article</label><input id="inv_item" /></div>
                 <div class="field"><label>Quantité initiale</label><input id="inv_qty" type="number" /></div>
-                <button class="primary full" data-action="save-inventory-item" data-project-id="${p.id}">Créer la fiche</button>
+                <button class="primary full" data-action="save-inventory-item" data-project-id="${p.id}" data-tab-id="${tabId}">Créer la fiche</button>
             </div>
             <div class="card">
                 <div class="table-wrap">
@@ -236,6 +239,7 @@ const UIModules = {
      */
     renderBookingModule(p, tabId) {
         const config = TAB_CONFIG[tabId];
+        const bookings = ProjectService.getData(p.id, tabId);
         return `
             <div class="card form-card">
                 <h2>Nouvelle réservation (${config.type})</h2>
@@ -243,7 +247,18 @@ const UIModules = {
                 <div class="field"><label>Prix payé</label><input id="book_price" type="number" /></div>
                 <button class="primary full" data-action="save-booking" data-project-id="${p.id}" data-tab-id="${tabId}">Enregistrer</button>
             </div>
-            <div class="card">${this.renderGenericModule(p, tabId)}</div>`;
+            <div class="card">
+                <h2>Réservations enregistrées</h2>
+                ${bookings.length ? bookings.map(booking => `
+                    <div class="tx">
+                        <div><strong>${esc(booking.values.name)}</strong><small>${esc(config.type)}</small></div>
+                        <div class="tx-actions">
+                            <strong class="amount-expense">${Currency.format(booking.values.cost, p.currency)}</strong>
+                            <button class="link-btn danger" data-action="delete-generic" data-item-id="${booking.id}">Supprimer</button>
+                        </div>
+                    </div>
+                `).join("") : '<div class="empty">Aucune réservation enregistrée</div>'}
+            </div>`;
     },
 
     /**
@@ -293,6 +308,31 @@ const UIModules = {
         `;
     },
 
+    /**
+     * Reusable financial module for expenses, purchases, withdrawals and income.
+     */
+    renderFinancialModule(p, tabId) {
+        const config = TAB_CONFIG[tabId];
+        const transactionType = config.transactionType || TransactionService.TYPES.EXPENSE;
+        const rows = TransactionService.getByProject(p.id, { sourceModule: tabId });
+        const isIncome = transactionType === TransactionService.TYPES.REVENUE || transactionType === TransactionService.TYPES.INCOME;
+        return `
+            <div class="card form-card">
+                <h2>${config.label}</h2>
+                <div class="field"><label>Description</label><input id="financial_${tabId}_label" placeholder="Ex : ${esc(config.category || config.label)}" /></div>
+                <div class="two-cols">
+                    <div class="field"><label>Montant</label><input id="financial_${tabId}_amount" type="number" min="0" step="0.01" inputmode="decimal" /></div>
+                    <div class="field"><label>Devise</label><select id="financial_${tabId}_currency">${['EUR', 'USD', 'MGA', 'FMG'].map(c => `<option value="${c}" ${c === p.currency ? 'selected' : ''}>${c}</option>`).join("")}</select></div>
+                </div>
+                <button class="primary full" data-action="save-financial-entry" data-project-id="${p.id}" data-tab-id="${tabId}">${isIncome ? 'Enregistrer le revenu' : 'Enregistrer l’opération'}</button>
+            </div>
+            <div class="card">
+                <h2>Historique</h2>
+                ${rows.length ? rows.map(transactionRow).join("") : '<div class="empty">Aucune opération enregistrée</div>'}
+            </div>
+        `;
+    },
+
     renderCustomTabsManager(p) {
         return `
             <div class="card form-card">
@@ -327,7 +367,7 @@ function saveMaterial(projectId) {
     persist();
 }
 
-function saveWorker(projectId) {
+function saveWorker(projectId, tabId = 'workers') {
     const values = {
         name: $("worker_name").value.trim(),
         role: $("worker_role") ? $("worker_role").value : "Expert",
@@ -335,7 +375,7 @@ function saveWorker(projectId) {
         paid_amount: 0
     };
     if (!values.name) return alert("Nom requis.");
-    ProjectService.saveData(projectId, 'workers', values);
+    ProjectService.saveData(projectId, tabId || 'workers', values);
     persist();
 }
 
@@ -349,7 +389,7 @@ function payWorker(projectId, workerId) {
         projectId, type: TransactionService.TYPES.PAYMENT,
         description: `Paiement : ${worker.values.name}`,
         amount: parseFloat(amount), currency: p.currency,
-        sourceModule: 'workers', sourceItemId: workerId, category: "Main-d'œuvre"
+        sourceModule: worker.tabId || 'workers', sourceItemId: workerId, category: "Main-d'œuvre"
     });
     persist();
 }
@@ -357,42 +397,73 @@ function payWorker(projectId, workerId) {
 function openAchatMaterial(pid, mid) {
     const p = state.projects.find(x=>x.id===pid);
     const mat = state.projectData.find(x=>x.id===mid);
+    if (!p || !mat) return;
     const qty = prompt("Quantité reçue ?"), price = prompt("Montant payé ?");
-    if (!qty || !price) return;
-    TransactionService.add({ projectId: pid, type: 'purchase', description: `Achat ${mat.values.name}`, amount: parseFloat(price), currency: p.currency, sourceModule: 'materials', sourceItemId: mid, category: 'Matériaux' });
-    mat.values.received_qty = (parseFloat(mat.values.received_qty) || 0) + parseFloat(qty);
+    const parsedQty = parseFloat(qty), parsedPrice = parseFloat(price);
+    if (!parsedQty || parsedQty <= 0 || !parsedPrice || parsedPrice <= 0) return alert("Quantité et montant valides requis.");
+    TransactionService.add({ projectId: pid, type: 'purchase', description: `Achat ${mat.values.name}`, amount: parsedPrice, currency: p.currency, sourceModule: mat.tabId || 'materials', sourceItemId: mid, category: 'Matériaux' });
+    mat.values.received_qty = (parseFloat(mat.values.received_qty) || 0) + parsedQty;
     persist();
 }
 
 function sellProduct(pid, mid) {
     const p = state.projects.find(x=>x.id===pid);
     const item = state.projectData.find(x=>x.id===mid);
+    if (!p || !item) return;
     const qty = prompt("Quantité vendue ?"), price = prompt("Montant total reçu ?");
-    if (!qty || !price) return;
-    TransactionService.add({ projectId: pid, type: 'revenue', description: `Vente ${item.values.item}`, amount: parseFloat(price), currency: p.currency, sourceModule: 'inventory', sourceItemId: mid, category: 'Commerce' });
-    item.values.qty = (parseFloat(item.values.qty) || 0) - parseFloat(qty);
+    const parsedQty = parseFloat(qty), parsedPrice = parseFloat(price);
+    if (!parsedQty || parsedQty <= 0 || parsedQty > (parseFloat(item.values.qty) || 0) || !parsedPrice || parsedPrice <= 0) return alert("Vérifiez la quantité disponible et le montant.");
+    TransactionService.add({ projectId: pid, type: 'revenue', description: `Vente ${item.values.item}`, amount: parsedPrice, currency: p.currency, sourceModule: item.tabId || 'stock', sourceItemId: mid, category: 'Commerce' });
+    item.values.qty = (parseFloat(item.values.qty) || 0) - parsedQty;
     persist();
 }
 
 function buyStock(pid, mid) {
     const p = state.projects.find(x=>x.id===pid);
     const item = state.projectData.find(x=>x.id===mid);
+    if (!p || !item) return;
     const qty = prompt("Quantité achetée ?"), price = prompt("Montant payé ?");
-    if (!qty || !price) return;
-    TransactionService.add({ projectId: pid, type: 'purchase', description: `Réappro ${item.values.item}`, amount: parseFloat(price), currency: p.currency, sourceModule: 'inventory', sourceItemId: mid, category: 'Commerce' });
-    item.values.qty = (parseFloat(item.values.qty) || 0) + parseFloat(qty);
+    const parsedQty = parseFloat(qty), parsedPrice = parseFloat(price);
+    if (!parsedQty || parsedQty <= 0 || !parsedPrice || parsedPrice <= 0) return alert("Quantité et montant valides requis.");
+    TransactionService.add({ projectId: pid, type: 'purchase', description: `Réappro ${item.values.item}`, amount: parsedPrice, currency: p.currency, sourceModule: item.tabId || 'stock', sourceItemId: mid, category: 'Commerce' });
+    item.values.qty = (parseFloat(item.values.qty) || 0) + parsedQty;
     persist();
 }
 
-function saveInventoryItem(pid) {
-    ProjectService.saveData(pid, 'inventory', { item: $("inv_item").value, qty: parseFloat($("inv_qty").value) || 0 });
+function saveInventoryItem(pid, tabId = 'stock') {
+    const item = $("inv_item").value.trim();
+    const qty = parseFloat($("inv_qty").value) || 0;
+    if (!item) return alert("Nom de l’article requis.");
+    ProjectService.saveData(pid, tabId || 'stock', { item, qty });
     persist();
 }
 
 function saveBooking(pid, tabId) {
     const p = state.projects.find(x=>x.id===pid);
-    const name = $("book_name").value, price = parseFloat($("book_price").value) || 0;
+    const name = $("book_name").value.trim(), price = parseFloat($("book_price").value) || 0;
+    if (!p || !TAB_CONFIG[tabId] || !name || price <= 0) return alert("Désignation et montant valides requis.");
     const tx = TransactionService.add({ projectId: pid, type: 'expense', description: `Réservation ${name}`, amount: price, currency: p.currency, sourceModule: tabId, category: TAB_CONFIG[tabId].type });
     ProjectService.saveData(pid, tabId, { name, cost: price, transactionId: tx.id });
+    persist();
+}
+
+function saveFinancialEntry(projectId, tabId) {
+    const p = state.projects.find(project => project.id === projectId);
+    const config = TAB_CONFIG[tabId];
+    const labelInput = $(`financial_${tabId}_label`);
+    const amountInput = $(`financial_${tabId}_amount`);
+    const currencyInput = $(`financial_${tabId}_currency`);
+    const amount = parseFloat(amountInput?.value);
+    if (!p || !config || !amount || amount <= 0) return alert("Montant valide requis.");
+
+    TransactionService.add({
+        projectId,
+        type: config.transactionType || TransactionService.TYPES.EXPENSE,
+        description: labelInput?.value.trim() || config.label,
+        amount,
+        currency: currencyInput?.value || p.currency,
+        category: config.category || config.label,
+        sourceModule: tabId
+    });
     persist();
 }

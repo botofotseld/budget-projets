@@ -38,7 +38,7 @@ const FinanceService = {
 
         // 5. Engagé (Budget déjà promis ou commandé)
         const engagedWorkers = state.projectData
-            .filter(d => d.projectId === projectId && d.tabId === 'workers')
+            .filter(d => d.projectId === projectId && (d.tabId === 'workers' || TAB_CONFIG[d.tabId]?.module === 'workers'))
             .reduce((sum, d) => sum + Currency.convert(parseFloat(d.values.agreed_amount) || 0, p.currency, targetCurrency, state.rates), 0);
 
         const engagedMaterials = state.projectData

@@ -5,12 +5,19 @@
 function renderTransactions() {
     const filter = $("txFilter") ? $("txFilter").value : "all";
     let rows = [...state.transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
-    if (filter !== "all") rows = rows.filter(r => r.type === filter);
+    if (filter === "project") rows = rows.filter(r => r.type === TransactionService.TYPES.ALLOCATION);
+    else if (filter === "project_expense") rows = rows.filter(r => r.projectId && [
+        TransactionService.TYPES.EXPENSE,
+        TransactionService.TYPES.PAYMENT,
+        TransactionService.TYPES.PURCHASE,
+        TransactionService.TYPES.WITHDRAWAL
+    ].includes(r.type));
+    else if (filter !== "all") rows = rows.filter(r => r.type === filter);
 
     if ($("transactionList")) {
         $("transactionList").innerHTML = rows.length ? rows.map(r => {
             const canDelete = ["income", "expense", "revenue", "payment", "purchase"].includes(r.type);
-            return `<div class="tx"><div><strong>${esc(r.description)}</strong><small>${new Date(r.date).toLocaleDateString()} · ${r.type}</small>${canDelete ? `<button class="link-btn" onclick="deleteTransaction('${r.id}')">X</button>` : ''}</div><strong class="amount-expense">${Currency.format(r.amount, r.currency)}</strong></div>`;
+            return `<div class="tx"><div><strong>${esc(r.description)}</strong><small>${new Date(r.date).toLocaleDateString()} · ${r.type}</small>${canDelete ? `<button class="link-btn danger" data-action="delete-transaction" data-transaction-id="${r.id}" aria-label="Supprimer la transaction">Supprimer</button>` : ''}</div><strong class="${[TransactionService.TYPES.INCOME, TransactionService.TYPES.REVENUE].includes(r.type) ? 'amount-income' : 'amount-expense'}">${Currency.format(r.amount, r.currency)}</strong></div>`;
         }).join("") : `<div class="empty">Aucune opération</div>`;
     }
 }

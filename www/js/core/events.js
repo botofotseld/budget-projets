@@ -23,32 +23,41 @@ const Events = {
             if (ds.page) return Router.navigate(ds.page);
             if (ds.nav) return Router.navigate(ds.nav);
 
-            // Project Tab Switch
-            if (ds.tabId) {
-                const pid = ds.projectId || activeProjectId;
-                console.log("Tab switch requested:", ds.tabId, "for project:", pid);
-                if (pid) {
-                    Router.switchProjectTab(pid, ds.tabId);
-                    return;
-                }
-            }
-
-            // Project Actions
+            // Actions must be handled before tab navigation: form buttons inside
+            // a tab also carry data-tab-id to identify their source module.
+            if (ds.action === "open-project") return openProject(ds.projectId);
             if (ds.action === "archive-project") return archiveProject(ds.projectId);
-            if (ds.action === "save-worker") return saveWorker(ds.projectId);
+            if (ds.action === "reactivate-project") return reactivateProject(ds.projectId);
+            if (ds.action === "delete-transaction") return deleteTransaction(ds.transactionId);
+            if (ds.action === "save-worker") return saveWorker(ds.projectId, ds.tabId);
             if (ds.action === "pay-worker") return payWorker(ds.projectId, ds.workerId);
             if (ds.action === "save-material") return saveMaterial(ds.projectId);
             if (ds.action === "buy-material") return openAchatMaterial(ds.projectId, ds.materialId);
-            if (ds.action === "save-inventory-item") return saveInventoryItem(ds.projectId);
+            if (ds.action === "save-inventory-item") return saveInventoryItem(ds.projectId, ds.tabId);
             if (ds.action === "sell-product") return sellProduct(ds.projectId, ds.itemId);
             if (ds.action === "buy-stock") return buyStock(ds.projectId, ds.itemId);
             if (ds.action === "save-booking") return saveBooking(ds.projectId, ds.tabId);
             if (ds.action === "save-task") return addTask(ds.projectId);
             if (ds.action === "save-generic-data") return saveGenericData(ds.projectId, ds.tabId);
+            if (ds.action === "save-financial-entry") return saveFinancialEntry(ds.projectId, ds.tabId);
             if (ds.action === "delete-generic") return deleteGenericData(ds.itemId);
             if (ds.action === "add-library-tab") return addLibraryTab(ds.projectId);
             if (ds.action === "delete-custom-tab") return deleteCustomTab(ds.projectId, ds.tabId);
             if (ds.action === "save-project-expense") return addProjectExpense(ds.projectId);
+
+            // Project Tab Switch
+            if (ds.tabId) {
+                const pid = ds.projectId || activeProjectId;
+                console.log("Tab switch requested:", ds.tabId, "for project:", pid);
+                if (pid) Router.switchProjectTab(pid, ds.tabId);
+            }
+        });
+
+        document.addEventListener("keydown", e => {
+            const card = e.target.closest('[data-action="open-project"]');
+            if (!card || (e.key !== "Enter" && e.key !== " ")) return;
+            e.preventDefault();
+            openProject(card.dataset.projectId);
         });
 
         // --- 2. Global CHANGE Delegation ---
@@ -56,13 +65,23 @@ const Events = {
             const el = e.target;
 
             // Project Status
-            if (el.classList.contains("status-select") && activeProjectId) {
-                updateProjectStatus(activeProjectId, el.value);
+            if (el.classList.contains("status-select")) {
+                const projectId = el.dataset.projectId || activeProjectId;
+                if (el.value === "Archivé") archiveProject(projectId);
+                else updateProjectStatus(projectId, el.value);
             }
 
             // Task Toggle (Checkbox)
             if (el.dataset.action === "toggle-task") {
                 toggleTask(el.dataset.taskId, el.dataset.projectId);
+            }
+
+            if (el.dataset.action === "toggle-assignment") {
+                toggleAssignment(el.dataset.projectId, el.checked);
+            }
+
+            if (el.dataset.action === "set-assignment-amount") {
+                setAssignmentAmount(el.dataset.projectId, el.value);
             }
 
             // Settings

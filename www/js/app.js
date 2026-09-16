@@ -16,11 +16,20 @@ function renderAll() {
     applyTheme();
     applySettings();
 
-    // 1. Core Modules Rendering
-    if (typeof renderHome === 'function') renderHome();
-    if (typeof renderTransactions === 'function') renderTransactions();
-    if (typeof renderProjects === 'function') renderProjects();
-    if (typeof renderMonthly === 'function') renderMonthly();
+    // Keep one faulty section from blocking the rest of the application.
+    [
+        ["accueil", typeof renderHome === "function" ? renderHome : null],
+        ["transactions", typeof renderTransactions === "function" ? renderTransactions : null],
+        ["projets", typeof renderProjects === "function" ? renderProjects : null],
+        ["mensuel", typeof renderMonthly === "function" ? renderMonthly : null]
+    ].forEach(([section, renderer]) => {
+        if (!renderer) return;
+        try {
+            renderer();
+        } catch (error) {
+            console.error(`Erreur de rendu (${section})`, error);
+        }
+    });
 
     // 2. Contextual Detail Rendering
     const isProjDetailActive = $("projectDetailPage") && $("projectDetailPage").classList.contains("active");
