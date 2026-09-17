@@ -6,7 +6,7 @@ function renderProjects() {
     const active = state.projects.filter(p => p.status !== "Archivé");
     const archived = state.projects.filter(p => p.status === "Archivé");
     if ($("projectsList")) {
-        $("projectsList").innerHTML = `<div class="section-head"><h2>Projets actifs</h2></div>${active.length ? active.map(p => projectCard(p)).join("") : `<div class="card empty">Aucun projet actif</div>`}${archived.length ? `<div class="section-head"><h2>Archivés</h2></div>${archived.map(p => `<div class="card"><div class="project-card-header"><strong>${p.icon} ${esc(p.name)}</strong><button class="secondary" data-action="reactivate-project" data-project-id="${p.id}">Réactiver</button></div></div>`).join("")}` : ""}`;
+        $("projectsList").innerHTML = `<div class="section-head"><h2>Projets actifs</h2></div>${active.length ? active.map(p => projectCard(p)).join("") : `<div class="card empty">Aucun projet actif</div>`}${archived.length ? `<div class="section-head"><h2>Archivés</h2></div>${archived.map(p => `<div class="card"><div class="project-card-header"><strong>${p.icon} ${esc(p.name)}</strong><div class="project-list-actions"><button class="secondary" data-action="open-project" data-project-id="${p.id}">Ouvrir</button><button class="secondary" data-action="reactivate-project" data-project-id="${p.id}">Réactiver</button><button class="danger" data-action="delete-project" data-project-id="${p.id}">Supprimer</button></div></div></div>`).join("")}` : ""}`;
     }
 }
 
@@ -18,6 +18,70 @@ function createProject() {
     const config = PROJECT_TYPES[subType] || PROJECT_TYPES.house;
     state.projects.push({ id: uid(), name, target, subType, icon: $("projectIcon").value.trim() || config.icon, currency: $("projectCurrency").value, type: subType === "simple" ? "simple" : "detailed", status: "En cours", created: new Date().toISOString(), customTabs: [] });
     $("projectName").value = ""; $("projectIcon").value = ""; $("projectTarget").value = "";
+    persist();
+}
+
+function editProject(id) {
+    if (!state.projects.some(project => project.id === id)) return;
+    uiState.editingProjectId = id;
+    renderProjectDetail();
+}
+
+function cancelProjectEdit(id) {
+    if (uiState.editingProjectId === id) uiState.editingProjectId = null;
+    renderProjectDetail();
+}
+
+function saveProjectEdit(id) {
+    const project = state.projects.find(item => item.id === id);
+    if (!project) return;
+
+    const name = $("editProjectName")?.value.trim();
+    const target = parseFloat($("editProjectTarget")?.value);
+    const subType = $("editProjectType")?.value;
+    const config = PROJECT_TYPES[subType] || PROJECT_TYPES.house;
+    if (!name || !target || target <= 0) return alert("Le nom et l'objectif financier sont obligatoires.");
+
+    project.name = name;
+    project.target = target;
+    project.subType = subType;
+    project.type = "detailed";
+    project.icon = $("editProjectIcon")?.value.trim() || config.icon;
+    project.currency = $("editProjectCurrency")?.value || project.currency;
+    project.updatedAt = new Date().toISOString();
+    uiState.editingProjectId = null;
+    persist();
+}
+
+async function deleteProject(id) {
+    const project = state.projects.find(item => item.id === id);
+    if (!project) return;
+    const confirmed = confirm(`Supprimer définitivement « ${project.name} » ?\n\nToutes ses transactions, données, tâches et photos seront également supprimées.`);
+    if (!confirmed) return;
+
+    try {
+        if (typeof AttachmentService !== "undefined") await AttachmentService.deleteByProject(id);
+    } catch (error) {
+        console.error("Project photo cleanup failed", error);
+        return alert("Les photos du projet n'ont pas pu être supprimées. Réessayez avant de supprimer le projet.");
+    }
+
+    state.projects = state.projects.filter(item => item.id !== id);
+    state.transactions = state.transactions.filter(item => item.projectId !== id);
+    state.projectData = state.projectData.filter(item => item.projectId !== id);
+    state.projectTasks = state.projectTasks.filter(item => item.projectId !== id);
+    state.projectEvents = (state.projectEvents || []).filter(item => item.projectId !== id);
+    state.projectExpenses = (state.projectExpenses || []).filter(item => item.projectId !== id);
+    state.projectMaterials = (state.projectMaterials || []).filter(item => item.projectId !== id);
+    state.projectWorkers = (state.projectWorkers || []).filter(item => item.projectId !== id);
+    state.monthlyAssignments = Object.fromEntries(
+        Object.entries(state.monthlyAssignments || {}).filter(([key]) => !key.endsWith(`:${id}`))
+    );
+
+    delete uiState.activeProjectTab[id];
+    if (uiState.editingProjectId === id) uiState.editingProjectId = null;
+    if (activeProjectId === id) activeProjectId = null;
+    Router.navigate("projectsPage");
     persist();
 }
 
@@ -50,6 +114,7 @@ function renderProjectDetail() {
 
     if (container) {
         try {
+            if (typeof AttachmentService !== "undefined") AttachmentService.releaseGalleryUrls();
             container.innerHTML = `
                 <div class="detail-pane-content">
                     ${UIModules.renderProjectHeader(p)}
@@ -64,9 +129,13 @@ function renderProjectDetail() {
                         </div>
                         <div class="active-tab-content">
                             ${renderTabRouter(p, activeTab)}
+                            ${activeTab !== "custom_tabs_manager" ? UIModules.renderAttachmentsModule(p, activeTab) : ""}
                         </div>
-                    ` : `<div class="card"><h2>Historique des versements</h2>${projectTransfers(p.id)}</div>`}
+                    ` : `<div class="card"><h2>Historique des versements</h2>${projectTransfers(p.id)}</div>${UIModules.renderAttachmentsModule(p, "summary")}`}
                 </div>`;
+            if (activeTab !== "custom_tabs_manager" && typeof AttachmentService !== "undefined") {
+                AttachmentService.renderGallery(p.id, p.type === "detailed" ? activeTab : "summary");
+            }
         } catch (e) {
             console.error("Crash during project detail render:", e);
             container.innerHTML = `<div class="card danger">Une erreur est survenue lors de l'affichage du projet.</div>`;

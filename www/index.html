@@ -265,7 +265,7 @@
 
             <div class="card">
               <h2>Données</h2>
-              <p class="muted">Pour cette V1, les données restent uniquement dans ce navigateur.</p>
+              <p class="muted">Les données et les photos restent dans ce navigateur. L’export crée une sauvegarde complète.</p>
               <div class="stack">
                 <button class="secondary full" id="exportBtn">Exporter mes données</button>
                 <label class="secondary full file-label">
@@ -277,7 +277,7 @@
             </div>
             <div class="card">
               <h2>À venir</h2>
-              <p class="muted">Synchronisation cloud, comptes multiples, photos de chantier et multi-utilisateur.</p>
+              <p class="muted">Synchronisation cloud, comptes multiples et multi-utilisateur.</p>
             </div>
 
             <footer class="about-section">
@@ -302,9 +302,18 @@
     </nav>
   </div>
 
+  <dialog id="attachmentPreview" class="attachment-preview" aria-labelledby="attachmentPreviewCaption">
+    <div class="attachment-preview-bar">
+      <strong id="attachmentPreviewCaption">Photo du projet</strong>
+      <button type="button" class="secondary" data-action="close-attachment-preview">Fermer</button>
+    </div>
+    <img id="attachmentPreviewImage" alt="Photo du projet" />
+  </dialog>
+
   <!-- Services -->
   <script src="js/services/currency-service.js"></script>
   <script src="js/services/migration-service.js"></script>
+  <script src="js/services/attachment-service.js"></script>
   <script src="js/services/storage-service.js"></script>
   <script src="js/services/transaction-service.js"></script>
   <script src="js/services/relation-service.js"></script>

@@ -1,4 +1,4 @@
-const CACHE = "budget-projets-pwa-20260917112551";
+const CACHE = "budget-projets-pwa-20260917114851";
 
 const ASSETS = [
   "./",
@@ -12,6 +12,7 @@ const ASSETS = [
   "./js/core/router.js",
   "./js/core/events.js",
   "./js/services/currency-service.js",
+  "./js/services/attachment-service.js",
   "./js/services/finance-service.js",
   "./js/services/migration-service.js",
   "./js/services/project-service.js",
