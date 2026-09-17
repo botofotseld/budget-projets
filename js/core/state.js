@@ -9,7 +9,8 @@ let activeProjectId = null;
  * UI State (Non-persistent between sessions, but active during runtime)
  */
 const uiState = {
-    activeProjectTab: {} // Map projectId -> activeTabId
+    activeProjectTab: {}, // Map projectId -> activeTabId
+    editingProjectId: null
 };
 
 /**

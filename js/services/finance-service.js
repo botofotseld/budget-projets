@@ -31,9 +31,13 @@ const FinanceService = {
             .filter(t => outTypes.includes(t.type))
             .reduce((sum, t) => sum + Currency.convert(t.amount, t.currency, targetCurrency, state.rates), 0);
 
-        // 4. Revenus (Générés par le projet)
+        // 4. Entrées propres au projet
         const revenue = txs
             .filter(t => t.type === TransactionService.TYPES.REVENUE)
+            .reduce((sum, t) => sum + Currency.convert(t.amount, t.currency, targetCurrency, state.rates), 0);
+
+        const refunds = txs
+            .filter(t => t.type === TransactionService.TYPES.REFUND)
             .reduce((sum, t) => sum + Currency.convert(t.amount, t.currency, targetCurrency, state.rates), 0);
 
         // 5. Engagé (Budget déjà promis ou commandé)
@@ -49,7 +53,7 @@ const FinanceService = {
         const engaged = Math.max(paid, engagedWorkers + engagedMaterials);
 
         // 6. Disponible (Trésorerie effective dans le projet)
-        const treasury = (allocated + revenue) - paid;
+        const treasury = (allocated + revenue + refunds) - paid;
 
         // 7. Progressions
         const financialProg = budget > 0 ? Math.round(Math.min(100, (paid / budget) * 100)) : 0;
@@ -60,6 +64,7 @@ const FinanceService = {
             engaged,
             paid,
             revenue,
+            refunds,
             treasury,
             financialProg,
             remainingToPay: Math.max(0, engaged - paid)
@@ -112,9 +117,32 @@ const FinanceService = {
     getAvailableBalance(targetCurrency) {
         return state.transactions.reduce((bal, t) => {
             const val = Currency.convert(t.amount, t.currency, targetCurrency, state.rates);
-            if ([TransactionService.TYPES.INCOME, TransactionService.TYPES.REVENUE].includes(t.type)) return bal + val;
-            const outs = [TransactionService.TYPES.EXPENSE, TransactionService.TYPES.PAYMENT, TransactionService.TYPES.PURCHASE, TransactionService.TYPES.ALLOCATION, TransactionService.TYPES.WITHDRAWAL];
-            if (outs.includes(t.type)) return bal - val;
+
+            // Une affectation déplace l'argent du disponible vers la trésorerie du projet.
+            if (t.type === TransactionService.TYPES.ALLOCATION) return bal - val;
+
+            // Les mouvements d'un projet restent dans sa propre trésorerie. Ils ne doivent
+            // pas être comptés une seconde fois dans le solde général.
+            if (t.projectId) {
+                // Un retrait de projet rend l'argent au solde disponible.
+                if (t.type === TransactionService.TYPES.WITHDRAWAL) return bal + val;
+                return bal;
+            }
+
+            const inflows = [
+                TransactionService.TYPES.INCOME,
+                TransactionService.TYPES.REVENUE,
+                TransactionService.TYPES.REFUND
+            ];
+            if (inflows.includes(t.type)) return bal + val;
+
+            const outflows = [
+                TransactionService.TYPES.EXPENSE,
+                TransactionService.TYPES.PAYMENT,
+                TransactionService.TYPES.PURCHASE,
+                TransactionService.TYPES.WITHDRAWAL
+            ];
+            if (outflows.includes(t.type)) return bal - val;
             return bal;
         }, 0);
     }

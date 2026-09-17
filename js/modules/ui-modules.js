@@ -3,11 +3,22 @@
  * UI Modules - Harmonized & Standardized (V6)
  */
 const UIModules = {
+    renderProjectTypeOptions(selectedType = "house") {
+        return PROJECT_GROUPS.map(group => {
+            const options = Object.entries(PROJECT_TYPES)
+                .filter(([, config]) => config.group === group)
+                .map(([type, config]) => `<option value="${type}" ${type === selectedType ? "selected" : ""}>${config.icon} ${config.label}</option>`)
+                .join("");
+            return options ? `<optgroup label="${group}">${options}</optgroup>` : "";
+        }).join("");
+    },
+
     /**
      * Standard Project Header
      */
     renderProjectHeader(p) {
         const kpis = ProjectService.getKPIs(p);
+        const isEditing = uiState.editingProjectId === p.id;
 
         return `
             <div class="card project-header-card">
@@ -18,8 +29,31 @@ const UIModules = {
                             ${ProjectService.STATUSES.map(s => `<option value="${s}" ${p.status === s ? 'selected' : ''}>${s}</option>`).join("")}
                         </select>
                     </div>
-                    <button class="danger" data-action="archive-project" data-project-id="${p.id}">Archiver</button>
+                    <div class="project-header-actions">
+                        <button class="secondary" data-action="edit-project" data-project-id="${p.id}">Modifier</button>
+                        <button class="secondary" data-action="archive-project" data-project-id="${p.id}">Archiver</button>
+                        <button class="danger" data-action="delete-project" data-project-id="${p.id}">Supprimer</button>
+                    </div>
                 </div>
+
+                ${isEditing ? `
+                    <div class="project-edit-form" aria-label="Modifier le projet">
+                        <h3>Modifier le projet</h3>
+                        <div class="two-cols">
+                            <div class="field"><label>Nom</label><input id="editProjectName" value="${esc(p.name)}" /></div>
+                            <div class="field"><label>Icône</label><input id="editProjectIcon" value="${esc(p.icon)}" maxlength="4" /></div>
+                        </div>
+                        <div class="two-cols">
+                            <div class="field"><label>Objectif financier</label><input id="editProjectTarget" type="number" min="1" step="0.01" value="${Number(p.target) || 0}" /></div>
+                            <div class="field"><label>Devise</label><select id="editProjectCurrency">${['EUR', 'USD', 'MGA', 'FMG'].map(c => `<option value="${c}" ${c === p.currency ? 'selected' : ''}>${c}</option>`).join("")}</select></div>
+                        </div>
+                        <div class="field"><label>Type de projet</label><select id="editProjectType">${this.renderProjectTypeOptions(p.subType)}</select></div>
+                        <div class="form-actions">
+                            <button class="primary" data-action="save-project-edit" data-project-id="${p.id}">Enregistrer les modifications</button>
+                            <button class="secondary" data-action="cancel-project-edit" data-project-id="${p.id}">Annuler</button>
+                        </div>
+                    </div>
+                ` : ""}
 
                 <div class="kpi-grid-5" style="margin-top:24px">
                     <div class="kpi"><span>Objectif</span><strong>${Currency.format(kpis.budget, p.currency)}</strong></div>
@@ -331,6 +365,34 @@ const UIModules = {
                 ${rows.length ? rows.map(transactionRow).join("") : '<div class="empty">Aucune opération enregistrée</div>'}
             </div>
         `;
+    },
+
+    /**
+     * Shared photo area displayed in every project sub-group.
+     */
+    renderAttachmentsModule(p, tabId) {
+        return `
+            <section class="card attachment-section">
+                <div class="section-head compact">
+                    <div>
+                        <h2>Photos et justificatifs</h2>
+                        <p class="muted">Facture, reçu, matériau, véhicule ou photo d’avancement.</p>
+                    </div>
+                    <span class="badge">Hors ligne</span>
+                </div>
+                <div class="field">
+                    <label for="photoCaption_${p.id}_${tabId}">Description de la photo</label>
+                    <input id="photoCaption_${p.id}_${tabId}" placeholder="Ex : Facture du bois, voiture avant achat…" />
+                </div>
+                <label class="secondary full file-label photo-picker">
+                    📷 Ajouter une ou plusieurs photos
+                    <input type="file" accept="image/*" multiple hidden data-action="add-attachments" data-project-id="${p.id}" data-tab-id="${tabId}" />
+                </label>
+                <div id="photoStatus_${p.id}_${tabId}" class="photo-status" aria-live="polite"></div>
+                <div id="photoGallery_${p.id}_${tabId}" class="photo-gallery" data-project-id="${p.id}" data-tab-id="${tabId}">
+                    <div class="photo-empty">Chargement des photos…</div>
+                </div>
+            </section>`;
     },
 
     renderCustomTabsManager(p) {

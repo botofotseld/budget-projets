@@ -26,6 +26,10 @@ const Events = {
             // Actions must be handled before tab navigation: form buttons inside
             // a tab also carry data-tab-id to identify their source module.
             if (ds.action === "open-project") return openProject(ds.projectId);
+            if (ds.action === "edit-project") return editProject(ds.projectId);
+            if (ds.action === "save-project-edit") return saveProjectEdit(ds.projectId);
+            if (ds.action === "cancel-project-edit") return cancelProjectEdit(ds.projectId);
+            if (ds.action === "delete-project") return deleteProject(ds.projectId);
             if (ds.action === "archive-project") return archiveProject(ds.projectId);
             if (ds.action === "reactivate-project") return reactivateProject(ds.projectId);
             if (ds.action === "delete-transaction") return deleteTransaction(ds.transactionId);
@@ -44,6 +48,10 @@ const Events = {
             if (ds.action === "add-library-tab") return addLibraryTab(ds.projectId);
             if (ds.action === "delete-custom-tab") return deleteCustomTab(ds.projectId, ds.tabId);
             if (ds.action === "save-project-expense") return addProjectExpense(ds.projectId);
+            if (ds.action === "open-attachment") return AttachmentService.openPreview(ds.attachmentId).catch(error => alert(error.message));
+            if (ds.action === "delete-attachment") return AttachmentService.deleteAttachment(ds.attachmentId, ds.projectId, ds.tabId).catch(error => alert(error.message));
+            if (ds.action === "close-attachment-preview") return AttachmentService.closePreview();
+            if (ds.action === "add-attachments") return;
 
             // Project Tab Switch
             if (ds.tabId) {
@@ -82,6 +90,10 @@ const Events = {
 
             if (el.dataset.action === "set-assignment-amount") {
                 setAssignmentAmount(el.dataset.projectId, el.value);
+            }
+
+            if (el.dataset.action === "add-attachments") {
+                AttachmentService.handleInput(el);
             }
 
             // Settings

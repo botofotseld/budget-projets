@@ -27,6 +27,7 @@ const TransactionService = {
             amount: parseFloat(data.amount) || 0,
             currency: data.currency || state.mainCurrency,
             date: data.date || now,
+            month: data.month || String(data.date || now).slice(0, 7),
             category: data.category || "Autre",
             description: data.description || "",
             sourceModule: data.sourceModule || null, // e.g., 'workers', 'materials'

@@ -51,8 +51,17 @@ const StorageService = {
         localStorage.setItem(this.STORAGE_KEY, JSON.stringify(state));
     },
 
-    export(state) {
-        const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    async export(state) {
+        let mediaAttachments = [];
+        try {
+            if (typeof AttachmentService !== "undefined") mediaAttachments = await AttachmentService.exportAll();
+        } catch (error) {
+            console.error("Photo export failed", error);
+            alert("Les données seront exportées, mais certaines photos n'ont pas pu être ajoutées à la sauvegarde.");
+        }
+
+        const payload = { ...state, mediaAttachments };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -63,11 +72,14 @@ const StorageService = {
 
     import(file, callback) {
         const reader = new FileReader();
-        reader.onload = () => {
+        reader.onload = async () => {
             try {
                 const parsed = JSON.parse(reader.result);
+                const mediaAttachments = Array.isArray(parsed.mediaAttachments) ? parsed.mediaAttachments : [];
+                delete parsed.mediaAttachments;
                 const migrated = MigrationService.migrate(parsed);
                 const normalized = { ...this.defaultState(), ...migrated };
+                if (typeof AttachmentService !== "undefined") await AttachmentService.replaceAll(mediaAttachments);
                 this.save(normalized);
                 callback(null, normalized);
             } catch (e) {
@@ -77,13 +89,21 @@ const StorageService = {
         reader.readAsText(file);
     },
 
-    reset() {
-        if (confirm("ATTENTION : Cette action supprimera définitivement TOUTES vos données. Une sauvegarde automatique sera créée avant la suppression. Continuer ?")) {
+    async reset() {
+        if (confirm("ATTENTION : Cette action supprimera définitivement TOUTES vos données et photos. Une sauvegarde complète sera téléchargée avant la suppression. Continuer ?")) {
+            await this.export(state);
             const raw = localStorage.getItem(this.STORAGE_KEY);
             if (raw) {
                 localStorage.setItem(`budgetProjets_FINAL_BACKUP_${Date.now()}`, raw);
             }
             localStorage.removeItem(this.STORAGE_KEY);
+            if (typeof AttachmentService !== "undefined") {
+                try {
+                    await AttachmentService.clear();
+                } catch (error) {
+                    console.error("Photo reset failed", error);
+                }
+            }
             location.reload();
         }
     }
