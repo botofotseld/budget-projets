@@ -20,12 +20,15 @@ function renderHome() {
 
 function getCurrentMonthTotals() {
     const currentMonth = monthKey();
-    const incomeTypes = [TransactionService.TYPES.INCOME, TransactionService.TYPES.REVENUE];
+    const incomeTypes = [
+        TransactionService.TYPES.INCOME,
+        TransactionService.TYPES.REVENUE,
+        TransactionService.TYPES.REFUND
+    ];
     const expenseTypes = [
         TransactionService.TYPES.EXPENSE,
         TransactionService.TYPES.PAYMENT,
-        TransactionService.TYPES.PURCHASE,
-        TransactionService.TYPES.WITHDRAWAL
+        TransactionService.TYPES.PURCHASE
     ];
 
     return state.transactions.reduce((totals, transaction) => {
@@ -35,6 +38,11 @@ function getCurrentMonthTotals() {
         const amount = Currency.convert(transaction.amount, transaction.currency, state.mainCurrency, state.rates);
         if (incomeTypes.includes(transaction.type)) totals.income += amount;
         if (expenseTypes.includes(transaction.type)) totals.expenses += amount;
+        // Un retrait sans projet est une sortie réelle. Avec un projet, il s'agit
+        // seulement d'un retour de trésorerie vers le solde disponible.
+        if (transaction.type === TransactionService.TYPES.WITHDRAWAL && !transaction.projectId) {
+            totals.expenses += amount;
+        }
         return totals;
     }, { income: 0, expenses: 0 });
 }
@@ -42,7 +50,7 @@ function getCurrentMonthTotals() {
 function projectCard(p) {
     const kpis = ProjectService.getKPIs(p);
     const activeClass = activeProjectId === p.id ? "active-border" : "";
-    let secondary = p.currency !== state.mainCurrency ? `<div class="muted" style="font-size:11px">≈ ${Currency.format(Currency.convert(kpis.allocated, p.currency, state.mainCurrency, state.rates), state.mainCurrency)}</div>` : "";
+    let secondary = p.currency !== state.mainCurrency ? `<div class="muted" style="font-size:11px">≈ ${Currency.format(Currency.convert(kpis.paid, p.currency, state.mainCurrency, state.rates), state.mainCurrency)}</div>` : "";
     return `
     <article class="project-card ${activeClass}" role="button" tabindex="0" data-action="open-project" data-project-id="${p.id}" aria-label="Ouvrir le projet ${esc(p.name)}">
       <div class="project-card-header">
@@ -51,7 +59,7 @@ function projectCard(p) {
       </div>
       <div class="progress"><div style="width:${kpis.financialProg}%"></div></div>
       <div class="project-meta">
-        <div><span>${Currency.format(kpis.allocated, p.currency)} / ${Currency.format(p.target, p.currency)}</span>${secondary}</div>
+        <div><span>Dépensé : ${Currency.format(kpis.paid, p.currency)} / ${Currency.format(p.target, p.currency)}</span>${secondary}</div>
         <span>Trésorerie : ${Currency.format(kpis.treasury, p.currency)}</span>
       </div>
     </article>`;
